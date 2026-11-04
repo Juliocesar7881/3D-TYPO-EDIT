@@ -140,7 +140,8 @@ function glMode(args) {
 async function launch(args) {
   const { chromium } = require('playwright');
   const mode = glMode(args);
-  const common = ['--no-proxy-server', '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows', '--mute-audio', '--ignore-gpu-blocklist'];
+  // --expose-gc: o motor força GC periódico para liberar os Blobs dos frames (senão estoura ~2 GB)
+  const common = ['--no-proxy-server', '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows', '--mute-audio', '--ignore-gpu-blocklist', '--js-flags=--expose-gc'];
   const opts = mode === 'swiftshader'
     ? { args: [...common, '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] }
     : { channel: 'chromium', args: [...common, '--enable-gpu', '--enable-unsafe-swiftshader'] };

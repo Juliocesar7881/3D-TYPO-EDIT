@@ -167,6 +167,27 @@ async function boot() {
 
   const gl = renderer.getContext();
   let pixels = null;
+  let uploads = 0;
+  // Cada frame vira um Blob de vários MB; o Chromium só libera a memória dos Blobs
+  // quando o GC roda (o heap JS é pequeno, então ele quase nunca roda sozinho) e
+  // estoura em ~2 GB (ERR_BLOB_OUT_OF_MEMORY). O CLI abre o Chromium com
+  // --js-flags=--expose-gc e aqui forçamos a coleta a cada 12 frames.
+  async function upload(url) {
+    if (!pixels) pixels = new Uint8Array(W * H * 4);
+    gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const res = await fetch(url, { method: 'POST', body: new Blob([pixels]) });
+        if (!res.ok) throw new Error('frame upload failed ' + res.status);
+        break;
+      } catch (e) {
+        if (window.gc) window.gc();
+        await new Promise((r) => setTimeout(r, 200 * (attempt + 1)));
+        if (attempt === 2) throw e;
+      }
+    }
+    if (++uploads % 12 === 0 && window.gc) window.gc();
+  }
 
   window.__engine = {
     ready: true,
@@ -182,20 +203,14 @@ async function boot() {
     },
     async renderTimeAndSend(t, workerId = 0, index = 0, url = '/__frame') {
       renderAt(t, Math.round(t * fps));
-      if (!pixels) pixels = new Uint8Array(W * H * 4);
-      gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-      const res = await fetch(`${url}?w=${workerId}&i=${index}`, { method: 'POST', body: new Blob([pixels]) });
-      if (!res.ok) throw new Error('frame upload failed ' + res.status);
+      await upload(`${url}?w=${workerId}&i=${index}`);
       return t;
     },
     // renderiza e envia o frame cru (RGBA, de baixo pra cima) ao servidor do CLI
     async renderAndSend(i, workerId = 0, url = '/__frame') {
       const t = startT + i / fps;
       renderAt(t, i);
-      if (!pixels) pixels = new Uint8Array(W * H * 4);
-      gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-      const res = await fetch(`${url}?w=${workerId}&i=${i}`, { method: 'POST', body: new Blob([pixels]) });
-      if (!res.ok) throw new Error('frame upload failed ' + res.status);
+      await upload(`${url}?w=${workerId}&i=${i}`);
       return t;
     },
   };

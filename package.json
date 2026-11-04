@@ -11,7 +11,9 @@
     "render": "node engine/cli/render.mjs",
     "preview": "node engine/cli/render.mjs --preview",
     "audio": "node engine/cli/analyze-audio.mjs",
-    "demo": "node engine/cli/render.mjs projects/demo-neon/scene.json"
+    "refs": "node engine/cli/ref-frames.mjs",
+    "demo": "node engine/cli/demo-beat.mjs projects/demo-neon/beat.wav 15 && node engine/cli/render.mjs projects/demo-neon/scene.json --preview",
+    "demo:candy": "node engine/cli/demo-beat.mjs projects/demo-candy/beat.wav 13 && node engine/cli/render.mjs projects/demo-candy/scene.json --preview"
   },
   "dependencies": {
     "opentype.js": "^1.3.4",

@@ -36,9 +36,14 @@ SwiftShader (CPU): ~0,5 s/frame em 1080p, ~0,27 s/frame no preview.
 2. **Criar o projeto**: `projects/<nome>/scene.json` (copie `projects/_template/scene.json`) e coloque o áudio na pasta.
    Áudio e saídas não vão pro git (ver `.gitignore`). **Nunca** commite músicas/letras de terceiros no repositório.
 3. **Timing das palavras** (o que mais importa para ficar profissional):
+   - a letra **vem do usuário** (arquivo ou colada na conversa). Não escreva letra de música de memória;
    - com LRC/SRT: `"lyrics": "letra.lrc"` (tempos da música; o motor desconta `audio.offset`) + `"snapToBeats": true`;
-   - só com o texto: rode `npm run audio -- projects/<nome>/musica.mp3` e use `beats`/`onsets` do JSON para
-     posicionar cada palavra no ataque (onset) mais próximo de onde ela é cantada; confirme com o usuário se tiver dúvida;
+   - só com o texto: **cronometragem automática** com Whisper (precisa `pip install faster-whisper` + ffmpeg):
+     `python -I engine/tools/align_lyrics.py projects/<nome>/musica.mp3 --lyrics projects/<nome>/letra.txt --from <offset> --to <offset+duração> --out projects/<nome>/palavras.txt`
+     → use `"lyrics": "palavras.txt"` (já sai em tempo da edit, quebras de linha = quebras de shot). Modelo `small`
+     (padrão) ou `medium` se a voz estiver enterrada no instrumental. Depois confira 2–3 palavras no preview;
+   - sem Whisper: rode `npm run audio -- projects/<nome>/musica.mp3 --from <offset> --to <fim>` e use os
+     `onsets fortes` para posicionar cada palavra no ataque mais próximo de onde é cantada; confirme com o usuário;
    - regras: uma palavra por ataque; palavras curtas (I, TO, THE, DE, O...) grudam na próxima; use `"break": true`
      para começar shot novo e `"solo": true` para uma palavra sozinha em destaque; `"accent": true` = hero.
 4. **Plano**: `npm run render -- projects/<nome>/scene.json --plan` → confira a lista de shots (palavras, layout,
@@ -95,6 +100,7 @@ SwiftShader (CPU): ~0,5 s/frame em 1080p, ~0,27 s/frame no preview.
   "duration": 15,
   "seed": 7,                       // troque para outra "sorte" do diretor
   "director": { "energy": 1.0 },   // 0.6 calmo … 1.4 frenético
+  "intro": { "title": "NOME DA MÚSICA", "subtitle": "artista", "until": 1.8 },   // card 2D opcional
   "shots": [ { "index": 3, "move": "spiral", "style": "holo", "transition": "spin", "decor": ["neonRing", "shards"] } ],
   "fx": { "bloom": 1.0, "chromatic": 0.3, "grain": 0.15 }
 }

@@ -25,6 +25,9 @@ Tempos em **segundos da edit** (t = 0 é o primeiro frame), exceto onde indicado
 | `quality` | `"final"` | `final`, `preview`, `draft` (o CLI ajusta com `--preview/--draft`) |
 | `qualityOverrides` | — | `{ msaa, bloomLevels, particleScale, curveSegments, bevelSegments, geoScale, resScale }` |
 | `fadeIn` / `fadeOut` | `0.35` / `0.6` | fade de/para preto em s (`false` desliga) |
+| `intro` | — | card 2D de abertura (estilo referências): `{ "title": "NOME", "subtitle": "artista", "until": 2.0, "label": "presents", "bg": "dark", "font": "serif" }` |
+| `outro` | — | card de encerramento, mesmos campos + `from` (padrão: últimos 2 s) |
+| `cards` | lista | cards 2D em qualquer tempo: `{ from, to, title, subtitle, label, bg: dark/light/transparent, font: serif/cond/bold/round, size, tracking, frame, waveform, typewriter, color }` |
 | `start` | `0` | desloca o t do primeiro frame (raro) |
 
 ## Palavras (`words[]`)
@@ -134,6 +137,8 @@ Override por índice (veja os índices com `--plan`):
 | `letterbox` | 0 | barras cinema (0.12 = 2.39:1 aprox.) |
 | `flashes` | `[]` | flashes manuais: `[2.5, {"t": 6.0, "decay": 0.2, "amount": 0.7}]` |
 | `bgPulse` | 0.4 | fundo pulsa no beat |
+| `letterFlash` | 1 (candy 0.2) | brilho branco quando cada letra entra |
+| `speedLines` | 0 (candy 0.7) | linhas radiais de velocidade (anime) durante as transições; `speedColor` |
 
 ## Temas (resumo)
 

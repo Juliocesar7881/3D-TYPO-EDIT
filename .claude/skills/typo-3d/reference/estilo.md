@@ -60,7 +60,7 @@ Para estudar os 21 vídeos da playlist em detalhe: baixe no PC (`referencias/bai
 
 | momento | receita |
 |---|---|
-| abertura elegante | 1ª palavra com `style: "card"` ou `"outline"`, `in: "fade"`, `move: "static"`, sem decor, `transition: "smooth"` |
+| abertura elegante | `"intro": {"title": "NOME DA MÚSICA", "subtitle": "artista", "until": 2.0}` (moldura + waveform + typewriter) ou 1ª palavra com `style: "card"`, `in: "fade"`, `move: "static"` |
 | palavra-soco do refrão | `solo: true`, `accent: true`, `in: "zoom"` ou `"scatter"`, `transition: "zoom"` + `flash: true`, `decor: ["sparkleBurst","streakCross"]` |
 | frase empilhada | 2–4 palavras no mesmo shot, `layout: "stack"`, `move: "orbitL"`/`"craneUp"` |
 | viagem de palavra em palavra | `layout: "cascade"`, `move: "slideL"`, `follow: 1` |

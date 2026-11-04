@@ -8,6 +8,7 @@ import { buildWorld } from './director/builder.js';
 import { buildEnvironment } from './world/env.js';
 import { Background } from './world/background.js';
 import { PostPipeline } from './post/pipeline.js';
+import { Overlay2D, loadOverlayFonts } from './post/overlay.js';
 import { AudioReactive } from './core/audio.js';
 import { Simplex3 } from './core/noise.js';
 import { clamp, impulse } from './core/easing.js';
@@ -62,6 +63,15 @@ async function boot() {
   const world = buildWorld(plan, theme, fonts, ctx, env);
   const bg = new Background(theme);
   const post = new PostPipeline(renderer, W, H, fx, quality);
+  // cards 2D (intro/outro): "cards": [...] ou atalhos "intro"/"outro"
+  const cards = [...(S.cards || [])];
+  if (S.intro) cards.push({ from: 0, ...S.intro, to: S.intro.to ?? S.intro.until ?? 2 });
+  if (S.outro) cards.push({ ...S.outro, from: S.outro.from ?? Math.max(0, duration - 2), to: S.outro.to ?? duration });
+  let overlay = null;
+  if (cards.length) {
+    await loadOverlayFonts();
+    overlay = new Overlay2D(W, H, cards, audio, theme);
+  }
   const moodFollow = theme.background?.moodFollow;
   const baseBg = [bg.uniforms.uC1.value.clone(), bg.uniforms.uC2.value.clone(), bg.uniforms.uC3.value.clone()];
   const moodCols = plan.shots.map((s) => s.mood.map((c) => new THREE.Color(c)));
@@ -138,7 +148,9 @@ async function boot() {
     let fade = 0;
     if (S.fadeIn !== false) fade = Math.max(fade, 1 - clamp((t - startT) / (S.fadeIn ?? 0.35)));
     if (S.fadeOut !== false && duration) fade = Math.max(fade, clamp((t - (duration - (S.fadeOut ?? 0.6))) / (S.fadeOut ?? 0.6)));
+    const ovOn = overlay ? overlay.draw(t) : false;
     post.composite({
+      overlay: ovOn ? overlay.tex : null,
       bloom: (fx.bloom ?? 1) * (1 + beat * (fx.bloomPulse ?? 0.3)),
       chromatic: (fx.chromatic ?? 0.3) + hit * (fx.chromaticPulse ?? 0.35) + glitch * 0.8,
       flash, glitch, fade, time: t, frame, speed,

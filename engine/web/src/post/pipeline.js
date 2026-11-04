@@ -119,12 +119,12 @@ export class PostPipeline {
         uSat: { value: 1.08 }, uContrast: { value: 1.06 }, uLift: { value: new THREE.Vector3(0, 0, 0) },
         uGain: { value: new THREE.Vector3(1, 1, 1) }, uFlash: { value: 0 }, uFlashColor: { value: new THREE.Color('#ffffff') },
         uFade: { value: 0 }, uTime: { value: 0 }, uFrame: { value: 0 }, uRes: { value: new THREE.Vector2(w, h) },
-        uLetterbox: { value: 0 }, uTonemap: { value: 1 }, uGlitch: { value: 0 }, uSpeed: { value: 0 }, uSpeedColor: { value: new THREE.Color('#ffffff') },
+        uLetterbox: { value: 0 }, uTonemap: { value: 1 }, uGlitch: { value: 0 }, uSpeed: { value: 0 }, uSpeedColor: { value: new THREE.Color('#ffffff') }, tOverlay: { value: null }, uOverlayOn: { value: 0 },
       },
       vertexShader: FS_VERT,
       fragmentShader: /* glsl */ `
         precision highp float;
-        uniform sampler2D tScene, tBloom, tStreak;
+        uniform sampler2D tScene, tBloom, tStreak, tOverlay; uniform float uOverlayOn;
         uniform float uBloom, uStreak, uExposure, uCA, uVignette, uGrain, uSat, uContrast, uFlash, uFade, uTime, uFrame, uLetterbox, uTonemap, uGlitch, uSpeed; uniform vec3 uSpeedColor;
         uniform vec3 uLift, uGain, uFlashColor, uStreakTint; uniform vec2 uRes;
         varying vec2 vUv;
@@ -174,6 +174,7 @@ export class PostPipeline {
           }
           col = mix(col, vec3(0.0), uFade);
           col = toSRGB(col);
+          if (uOverlayOn > 0.5) { vec4 ov = texture2D(tOverlay, vUv); col = mix(col, ov.rgb, ov.a); }
           // grão + dither (evita banding no degradê escuro)
           float n = hash(uv * uRes + vec2(uFrame * 17.0, uFrame * 31.0));
           float n2 = hash(uv * uRes * 1.37 + vec2(uFrame * 7.0, uFrame * 13.0));
@@ -270,6 +271,8 @@ export class PostPipeline {
     c.uLetterbox.value = fx.letterbox ?? 0;
     c.uGlitch.value = fx.glitch ?? 0;
     c.uSpeed.value = fx.speed ?? 0;
+    c.tOverlay.value = fx.overlay || null;
+    c.uOverlayOn.value = fx.overlay ? 1 : 0;
     if (fx.speedColor) c.uSpeedColor.value.set(fx.speedColor);
     this._pass(this.compMat, null);
   }

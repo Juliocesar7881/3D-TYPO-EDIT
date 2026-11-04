@@ -241,7 +241,7 @@ export class Word3D {
       L.pivot.rotation.set(L.baseRot[0] + T.rx, L.baseRot[1] + T.ry, L.baseRot[2] + T.rz);
       const bs = L.baseScale;
       L.pivot.scale.set(T.sx * bs, T.sy * bs, T.sz * bs);
-      const flash = clamp(T.flash + (frameCtx.wordFlash || 0));
+      const flash = clamp(T.flash * (this.ctx.letterFlash ?? 1) + (frameCtx.wordFlash || 0));
       for (const m of L.mats) setMaterialState(m, op, flash);
     }
   }

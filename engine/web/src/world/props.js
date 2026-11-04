@@ -235,6 +235,14 @@ export class Prop {
     const tt = t - this.t0;
     const beat = fctx.beat || 0;
     const pulse = 1 + (c.reactive ?? 0.12) * beat;
+    // fade por proximidade da câmera (formas sólidas)
+    if (fctx.camPos && !this.floorMat && c.kind !== 'laser' && !c.kind.endsWith('Ring') && c.kind !== 'halo' && c.kind !== 'ring') {
+      this.group.getWorldPosition(this._wp || (this._wp = new THREE.Vector3()));
+      const d = this._wp.distanceTo(fctx.camPos);
+      const R = Math.max(0.2, this.baseScale * 1.2);
+      const near = Math.min(1, Math.max(0, (d - R * 1.2) / (R * 2.5)));
+      op *= near * near * (3 - 2 * near);
+    }
     this.group.scale.setScalar(this.baseScale * s * pulse);
     this.group.rotation.set(
       this.baseRot.x + this.spin[0] * tt,

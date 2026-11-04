@@ -119,13 +119,13 @@ export class PostPipeline {
         uSat: { value: 1.08 }, uContrast: { value: 1.06 }, uLift: { value: new THREE.Vector3(0, 0, 0) },
         uGain: { value: new THREE.Vector3(1, 1, 1) }, uFlash: { value: 0 }, uFlashColor: { value: new THREE.Color('#ffffff') },
         uFade: { value: 0 }, uTime: { value: 0 }, uFrame: { value: 0 }, uRes: { value: new THREE.Vector2(w, h) },
-        uLetterbox: { value: 0 }, uTonemap: { value: 1 }, uGlitch: { value: 0 },
+        uLetterbox: { value: 0 }, uTonemap: { value: 1 }, uGlitch: { value: 0 }, uSpeed: { value: 0 }, uSpeedColor: { value: new THREE.Color('#ffffff') },
       },
       vertexShader: FS_VERT,
       fragmentShader: /* glsl */ `
         precision highp float;
         uniform sampler2D tScene, tBloom, tStreak;
-        uniform float uBloom, uStreak, uExposure, uCA, uVignette, uGrain, uSat, uContrast, uFlash, uFade, uTime, uFrame, uLetterbox, uTonemap, uGlitch;
+        uniform float uBloom, uStreak, uExposure, uCA, uVignette, uGrain, uSat, uContrast, uFlash, uFade, uTime, uFrame, uLetterbox, uTonemap, uGlitch, uSpeed; uniform vec3 uSpeedColor;
         uniform vec3 uLift, uGain, uFlashColor, uStreakTint; uniform vec2 uRes;
         varying vec2 vUv;
         float hash(vec2 p){ p = fract(p*vec2(443.897, 441.423)); p += dot(p, p.yx+19.19); return fract((p.x+p.y)*p.x); }
@@ -160,6 +160,18 @@ export class PostPipeline {
           // vinheta
           float vig = smoothstep(0.85, 0.2, length(dc * vec2(uRes.x/uRes.y, 1.0)) * 0.9);
           col *= mix(1.0, vig, uVignette);
+          if (uSpeed > 0.001) {
+            // linhas radiais de velocidade (estilo anime/candy)
+            vec2 q = dc * vec2(uRes.x/uRes.y, 1.0);
+            float ang = atan(q.y, q.x);
+            float rr = length(q);
+            float fr = floor(uTime * 24.0);
+            float lineId = floor((ang + 3.14159) * 60.0);
+            float h = hash(vec2(lineId, fr));
+            float w = smoothstep(0.5, 0.0, abs(fract((ang + 3.14159) * 60.0) - 0.5) * 2.0 - (1.0 - h) * 0.6);
+            float on = step(0.72, h) * smoothstep(0.32 + h * 0.15, 0.75, rr);
+            col = mix(col, uSpeedColor, clamp(on * w * uSpeed * 0.85, 0.0, 1.0));
+          }
           col = mix(col, vec3(0.0), uFade);
           col = toSRGB(col);
           // grão + dither (evita banding no degradê escuro)
@@ -257,6 +269,8 @@ export class PostPipeline {
     c.uFrame.value = fx.frame ?? 0;
     c.uLetterbox.value = fx.letterbox ?? 0;
     c.uGlitch.value = fx.glitch ?? 0;
+    c.uSpeed.value = fx.speed ?? 0;
+    if (fx.speedColor) c.uSpeedColor.value.set(fx.speedColor);
     this._pass(this.compMat, null);
   }
 }

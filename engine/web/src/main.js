@@ -57,7 +57,7 @@ async function boot() {
 
   const duration = S.duration;
   const plan = planEdit({ ...S, duration }, theme, fonts, audio);
-  const ctx = { quality, noise, audio, seed, shake: (S.director?.shake ?? theme.camera.shake ?? 0.5), aspect: W / H, resScale: W / (out.width || 1920) };
+  const ctx = { quality, noise, audio, seed, shake: (S.director?.shake ?? theme.camera.shake ?? 0.5), aspect: W / H, resScale: W / (out.width || 1920), letterFlash: fx.letterFlash ?? 1 };
   const env = buildEnvironment(renderer, theme);
   const world = buildWorld(plan, theme, fonts, ctx, env);
   const bg = new Background(theme);
@@ -103,7 +103,7 @@ async function boot() {
     const projScale = H / 2 / Math.tan((cam.fov * Math.PI) / 360);
     const pose = world.camDir.pose(t);
     const focusDist = pose ? pose.pos.distanceTo(pose.target) : 14;
-    const fctx = { t, beat, hit, projScale, focusDist, noise, wordFlash: 0 };
+    const fctx = { t, beat, hit, projScale, focusDist, noise, wordFlash: 0, camPos: cam.position };
     for (const u of world.updatables) u.update(t, fctx);
     if (moodFollow) {
       for (let k = 0; k < 3; k++) {
@@ -124,13 +124,24 @@ async function boot() {
       }
     }
     for (const f of fx.flashes || []) flash = Math.max(flash, impulse(t, f.t ?? f, f.decay ?? 0.12) * (f.amount ?? 0.9));
+    // speed lines (candy/anime) durante o voo da câmera
+    let speed = 0;
+    if (fx.speedLines) {
+      for (const s of plan.shots) {
+        if (!s.transition || s.transition.style === 'cut') continue;
+        const a = s.start - s.transition.dur * 0.62;
+        const u = (t - a) / s.transition.dur;
+        if (u > 0 && u < 1) speed = Math.max(speed, Math.sin(Math.PI * u));
+      }
+      speed *= fx.speedLines;
+    }
     let fade = 0;
     if (S.fadeIn !== false) fade = Math.max(fade, 1 - clamp((t - startT) / (S.fadeIn ?? 0.35)));
     if (S.fadeOut !== false && duration) fade = Math.max(fade, clamp((t - (duration - (S.fadeOut ?? 0.6))) / (S.fadeOut ?? 0.6)));
     post.composite({
       bloom: (fx.bloom ?? 1) * (1 + beat * (fx.bloomPulse ?? 0.3)),
       chromatic: (fx.chromatic ?? 0.3) + hit * (fx.chromaticPulse ?? 0.35) + glitch * 0.8,
-      flash, glitch, fade, time: t, frame,
+      flash, glitch, fade, time: t, frame, speed,
       tonemap: TONEMAP[fx.tonemap] ?? 1,
     });
   }

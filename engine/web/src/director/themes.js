@@ -132,7 +132,7 @@ export const THEMES = {
       { type: 'confetti', count: 480, size: [0.12, 0.26], colors: ['$p0', '$p1', '$p2', '$p3', '$p4', '#ffffff'], intensity: 1.0, drift: 0.7, twinkle: 0.0, blending: 'normal', spin: 2.5 },
       { type: 'sparkle', count: 260, size: [0.1, 0.3], colors: ['#ffffff', '#fff6c8'], intensity: 1.4, drift: 0.4, twinkle: 0.9 },
     ],
-    fx: { bloom: 0.22, bloomThreshold: 2.2, chromatic: 0.1, vignette: 0.16, grain: 0.04, saturation: 1.1, contrast: 1.08, anamorphic: 0, exposure: 1.0, tonemap: 'neutral' },
+    fx: { bloom: 0.22, bloomThreshold: 2.2, chromatic: 0.1, vignette: 0.16, grain: 0.04, saturation: 1.1, contrast: 1.08, anamorphic: 0, exposure: 1.0, tonemap: 'neutral', letterFlash: 0.2, speedLines: 0.7, speedColor: '#ffffff' },
   },
   candyNight: {
     palette: ['#ff6ec7', '#7af0ff', '#b98bff', '#fff07a', '#7dffb2', '#ff9a6e'],
@@ -151,7 +151,7 @@ export const THEMES = {
       { type: 'sparkle', count: 320, size: [0.08, 0.26], colors: ['#ffffff', '$p3', '$p1'], intensity: 2.6, drift: 0.4, twinkle: 0.9 },
       { type: 'bokeh', count: 260, size: [0.12, 0.4], colors: ['$p0', '$p1', '$p2'], intensity: 0.8, drift: 0.8, twinkle: 0.2 },
     ],
-    fx: { bloom: 1.05, bloomThreshold: 0.85, chromatic: 0.28, vignette: 0.35, grain: 0.12, saturation: 1.12, contrast: 1.04, anamorphic: 0.12, exposure: 1.0, tonemap: 'aces' },
+    fx: { bloom: 1.05, bloomThreshold: 0.85, chromatic: 0.28, vignette: 0.35, grain: 0.12, saturation: 1.12, contrast: 1.04, anamorphic: 0.12, exposure: 1.0, tonemap: 'aces', letterFlash: 0.6, speedLines: 0.35, speedColor: '#ffd6f5' },
   },
   inferno: {
     palette: ['#ff3d2e', '#ff9a1f', '#ffd36b', '#ff2f6e', '#ffffff'],

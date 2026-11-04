@@ -51,6 +51,27 @@ export class PostPipeline {
     // streak anamórfico em baixa resolução
     this.streakA = rt(w >> 2, h >> 3);
     this.streakB = rt(w >> 2, h >> 3);
+    // raios de luz volumétricos (god rays) em 1/4 de resolução
+    this.raysRT = rt(w >> 2, h >> 2);
+    this.raysMat = new THREE.ShaderMaterial({
+      uniforms: { tSrc: { value: null }, uLight: { value: new THREE.Vector2(0.5, 0.5) }, uDensity: { value: 0.9 }, uDecay: { value: 0.955 }, uWeight: { value: 0.06 } },
+      vertexShader: FS_VERT,
+      fragmentShader: /* glsl */ `
+        uniform sampler2D tSrc; uniform vec2 uLight; uniform float uDensity, uDecay, uWeight; varying vec2 vUv;
+        void main(){
+          vec2 uv = vUv;
+          vec2 delta = (uv - uLight) * uDensity / 48.0;
+          float illum = 1.0;
+          vec3 acc = vec3(0.0);
+          for (int i = 0; i < 48; i++) {
+            uv -= delta;
+            acc += texture2D(tSrc, uv).rgb * illum;
+            illum *= uDecay;
+          }
+          gl_FragColor = vec4(acc * uWeight, 1.0);
+        }`,
+      depthTest: false, depthWrite: false,
+    });
 
     this.prefilterMat = new THREE.ShaderMaterial({
       uniforms: { tSrc: { value: null }, uTexel: { value: new THREE.Vector2() }, uThreshold: { value: 1 }, uKnee: { value: 0.5 } },
@@ -119,12 +140,12 @@ export class PostPipeline {
         uSat: { value: 1.08 }, uContrast: { value: 1.06 }, uLift: { value: new THREE.Vector3(0, 0, 0) },
         uGain: { value: new THREE.Vector3(1, 1, 1) }, uFlash: { value: 0 }, uFlashColor: { value: new THREE.Color('#ffffff') },
         uFade: { value: 0 }, uTime: { value: 0 }, uFrame: { value: 0 }, uRes: { value: new THREE.Vector2(w, h) },
-        uLetterbox: { value: 0 }, uTonemap: { value: 1 }, uGlitch: { value: 0 }, uSpeed: { value: 0 }, uSpeedColor: { value: new THREE.Color('#ffffff') }, tOverlay: { value: null }, uOverlayOn: { value: 0 },
+        uLetterbox: { value: 0 }, uTonemap: { value: 1 }, uGlitch: { value: 0 }, uSpeed: { value: 0 }, uSpeedColor: { value: new THREE.Color('#ffffff') }, tOverlay: { value: null }, uOverlayOn: { value: 0 }, tRays: { value: null }, uRays: { value: 0 }, uLightUV: { value: new THREE.Vector2(0.5, 0.5) }, uLightVis: { value: 0 }, uFlare: { value: 0 }, uFlareTint: { value: new THREE.Color('#ffd9b0') },
       },
       vertexShader: FS_VERT,
       fragmentShader: /* glsl */ `
         precision highp float;
-        uniform sampler2D tScene, tBloom, tStreak, tOverlay; uniform float uOverlayOn;
+        uniform sampler2D tScene, tBloom, tStreak, tOverlay, tRays; uniform float uOverlayOn, uRays, uLightVis, uFlare; uniform vec2 uLightUV; uniform vec3 uFlareTint;
         uniform float uBloom, uStreak, uExposure, uCA, uVignette, uGrain, uSat, uContrast, uFlash, uFade, uTime, uFrame, uLetterbox, uTonemap, uGlitch, uSpeed; uniform vec3 uSpeedColor;
         uniform vec3 uLift, uGain, uFlashColor, uStreakTint; uniform vec2 uRes;
         varying vec2 vUv;
@@ -149,6 +170,33 @@ export class PostPipeline {
           vec3 bloomCA = vec3(texture2D(tBloom, uv + caOff*2.0).r, bloom.g, texture2D(tBloom, uv - caOff*2.0).b);
           col += bloomCA * uBloom;
           col += texture2D(tStreak, uv).rgb * uStreak * uStreakTint;
+          if (uLightVis > 0.001) {
+            col += texture2D(tRays, uv).rgb * uRays * uLightVis;
+            // flare de lente: some quando o texto tampa a luz (lê o brilho da cena no ponto da luz)
+            vec3 atL = texture2D(tScene, clamp(uLightUV, 0.001, 0.999)).rgb;
+            float occ = smoothstep(0.4, 2.5, dot(atL, vec3(0.3, 0.59, 0.11)));
+            float fv = uFlare * uLightVis * occ;
+            if (fv > 0.001) {
+              vec2 asp = vec2(uRes.x / uRes.y, 1.0);
+              vec2 L = uLightUV;
+              vec2 axis = vec2(0.5) - L;
+              float dl = length((uv - L) * asp);
+              float ang = atan((uv.y - L.y), (uv.x - L.x) * asp.x);
+              float star = pow(max(0.0, cos(ang * 6.0)), 40.0) * exp(-dl * 7.0) * 0.5 + pow(max(0.0, cos(ang * 2.0 + 0.4)), 120.0) * exp(-dl * 3.0) * 0.4;
+              float core = exp(-dl * 28.0) * 1.2;
+              vec3 fl = uFlareTint * (star + core);
+              // fantasmas ao longo do eixo luz->centro
+              float g1 = smoothstep(0.07, 0.04, length((uv - (L + axis * 0.55)) * asp));
+              float g2 = smoothstep(0.035, 0.015, length((uv - (L + axis * 0.95)) * asp));
+              float g3 = smoothstep(0.12, 0.09, length((uv - (L + axis * 1.45)) * asp)) - smoothstep(0.09, 0.06, length((uv - (L + axis * 1.45)) * asp)) * 0.7;
+              float g4 = smoothstep(0.05, 0.02, length((uv - (L + axis * 1.8)) * asp));
+              fl += vec3(0.5, 0.8, 1.0) * g1 * 0.12 + vec3(1.0, 0.6, 0.9) * g2 * 0.2 + vec3(0.6, 1.0, 0.8) * max(0.0, g3) * 0.08 + uFlareTint * g4 * 0.15;
+              // anel (halo) em volta do centro da tela
+              float hr = length((uv - (L + axis * 1.0)) * asp);
+              fl += uFlareTint * smoothstep(0.02, 0.0, abs(hr - 0.32)) * 0.05;
+              col += fl * fv;
+            }
+          }
           col *= uExposure;
           col = mix(col, uFlashColor * 3.0, uFlash * 0.85);
           col = uTonemap > 0.5 ? aces(col) : clamp(col, 0.0, 1.0);
@@ -248,6 +296,20 @@ export class PostPipeline {
       this._pass(this.streakMat, this.streakA);
     }
     const c = this.compMat.uniforms;
+    const vis = fx.lightUV ? (fx.lightVis ?? 0) : 0;
+    if (vis > 0.001 && (fx.rays ?? 0) > 0) {
+      const r = this.raysMat.uniforms;
+      r.tSrc.value = this.down[1].texture;
+      r.uLight.value.set(fx.lightUV[0], fx.lightUV[1]);
+      r.uDensity.value = fx.raysLength ?? 0.95;
+      this._pass(this.raysMat, this.raysRT);
+    }
+    c.tRays.value = this.raysRT.texture;
+    c.uRays.value = fx.rays ?? 0;
+    c.uLightVis.value = vis;
+    if (fx.lightUV) c.uLightUV.value.set(fx.lightUV[0], fx.lightUV[1]);
+    c.uFlare.value = fx.flare ?? 0;
+    if (fx.flareTint) c.uFlareTint.value.set(fx.flareTint);
     c.tScene.value = src;
     c.tBloom.value = bloomTex;
     c.tStreak.value = this.streakA.texture;

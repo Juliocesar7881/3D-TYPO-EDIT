@@ -134,8 +134,11 @@ export function planEdit(scene, theme, fonts, audio) {
     const r = rng.fork('shot' + si + ':' + g.map((w) => w.text).join(' '));
     const start = ov.start ?? g[0].t;
     const nextStart = groups[si + 1] ? scene.shots?.find?.((s) => s && s.index === si + 1)?.start ?? groups[si + 1][0].t : duration;
-    // cores
-    const accent = ov.accent || r.pickFresh(palette, recent.accent, Math.min(2, palette.length - 1));
+    // cores: a cor de destaque muda por SEÇÃO (theme.sectionLen shots ou pausa longa)
+    const secLen = D.sectionLen ?? theme.sectionLen ?? 1;
+    const gapPrev = si > 0 ? g[0].t - (groups[si - 1][groups[si - 1].length - 1].end ?? g[0].t) : 0;
+    const newSection = si === 0 || secLen <= 1 || si % secLen === 0 || gapPrev > 0.9;
+    const accent = ov.accent || (newSection || !recent.accent.length ? r.pickFresh(palette, recent.accent, Math.min(2, palette.length - 1)) : recent.accent[recent.accent.length - 1]);
     recent.accent.push(accent);
     const others = palette.filter((c) => c !== accent);
     const accent2 = ov.accent2 || r.pick(others.length ? others : palette);
@@ -265,8 +268,9 @@ export function planEdit(scene, theme, fonts, audio) {
     if (letterLayout === 'scatter3d') { movePool.orbitL = (movePool.orbitL || 1) * 2; movePool.orbitR = (movePool.orbitR || 1) * 2; }
     const move = ov.move || r.weighted(movePool);
     recent.move.push(move);
-    const fov = ov.fov ?? fovBase + r.range(-6, 10);
-    const fillW = portrait ? 0.8 : 0.7;
+    const fr = theme.camera.fovRange || [-6, 10];
+    const fov = ov.fov ?? fovBase + r.range(fr[0], fr[1]);
+    const fillW = portrait ? Math.max(0.8, (theme.camera.fill ?? 0.7) + 0.06) : (theme.camera.fill ?? 0.7);
     // cascade: a câmera segue palavra a palavra, então enquadra só a maior palavra
     const fitW = layout === 'cascade' && n > 1 ? Math.max(...wordPlans.map((p) => p.natW * p.size)) * 1.25 : blockW;
     const fitH = layout === 'cascade' && n > 1 ? Math.max(...wordPlans.map((p) => p.size)) * 2.2 : blockH;
@@ -311,11 +315,11 @@ export function planEdit(scene, theme, fonts, audio) {
       anchorPos[2] -= Math.cos(yaw) * Math.cos(pitch) * step;
     }
     prevBlock = S;
-    const faceYaw = (heading.yaw + r.range(-40, 40) * (D.tilt ?? 1)) * (Math.PI / 180);
+    const faceYaw = (heading.yaw + r.range(-40, 40) * (D.tilt ?? theme.camera.tilt ?? 1)) * (Math.PI / 180);
     const anchor = {
       pos: ov.anchor?.pos || anchorPos.slice(),
       // texto "olha" para trás no caminho (para a câmera que chega) com desvio
-      rot: ov.anchor?.rot || [r.range(-0.18, 0.18) * (D.tilt ?? 1), -faceYaw, r.chance(0.35) ? r.range(-0.3, 0.3) * (D.tilt ?? 1) : 0],
+      rot: ov.anchor?.rot || [r.range(-0.18, 0.18) * (D.tilt ?? theme.camera.tilt ?? 1), -faceYaw, r.chance(0.35) ? r.range(-0.3, 0.3) * (D.tilt ?? theme.camera.tilt ?? 1) : 0],
     };
 
     // palavras: tempos de entrada/saída

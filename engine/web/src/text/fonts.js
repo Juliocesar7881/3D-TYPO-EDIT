@@ -25,6 +25,13 @@ export const FONT_FILES = {
   bowlby: 'BowlbyOneSC-Regular.ttf',
   rubikmono: 'RubikMonoOne-Regular.ttf',
   blackops: 'BlackOpsOne-Regular.ttf',
+  italiana: 'Italiana-Regular.ttf',
+  julius: 'JuliusSansOne-Regular.ttf',
+  marcellus: 'Marcellus-Regular.ttf',
+  cinzel: 'CinzelDecorative-Bold.ttf',
+  cinzellight: 'CinzelDecorative-Regular.ttf',
+  poiret: 'PoiretOne-Regular.ttf',
+  michroma: 'Michroma-Regular.ttf',
 };
 
 const fontCache = new Map();

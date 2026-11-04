@@ -25,7 +25,8 @@ export function glyphGeometry(font, ch, opts = {}) {
   const curveSegments = opts.curveSegments ?? 8;
   const bevelSegments = opts.bevelSegments ?? 3;
   const strokeWidth = opts.strokeWidth ?? 0;
-  const key = [font.name, ch, depth, bevel, curveSegments, bevelSegments, strokeWidth, opts.plate ? 1 : 0].join('|');
+  const strokeWidth2 = opts.strokeWidth2 ?? 0;
+  const key = [font.name, ch, depth, bevel, curveSegments, bevelSegments, strokeWidth, strokeWidth2, opts.plate ? 1 : 0].join('|');
   if (geoCache.has(key)) return geoCache.get(key);
 
   const g = font.shapes(ch, curveSegments);
@@ -57,8 +58,8 @@ export function glyphGeometry(font, ch, opts = {}) {
     res.face = geo;
   }
 
-  if (strokeWidth > 0) {
-    const style = SVGLoader.getStrokeStyle(strokeWidth, '#fff', 'round', 'round', 4);
+  const makeStroke = (w) => {
+    const style = SVGLoader.getStrokeStyle(w, '#fff', 'round', 'round', 4);
     const parts = [];
     for (const s of g.shapes) {
       for (const pts of contourPoints(s, curveSegments)) {
@@ -69,12 +70,13 @@ export function glyphGeometry(font, ch, opts = {}) {
         if (sg) parts.push(sg);
       }
     }
-    if (parts.length) {
-      const merged = mergeSimple(parts);
-      merged.translate(-cx, -cy, 0);
-      res.stroke = merged;
-    }
-  }
+    if (!parts.length) return null;
+    const merged = mergeSimple(parts);
+    merged.translate(-cx, -cy, 0);
+    return merged;
+  };
+  if (strokeWidth > 0) res.stroke = makeStroke(strokeWidth);
+  if (strokeWidth2 > 0) res.stroke2 = makeStroke(strokeWidth2);
 
   if (opts.plate) {
     // chapa plana do formato da letra (usada como sombra / fundo do contorno)

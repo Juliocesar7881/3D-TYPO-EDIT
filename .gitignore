@@ -15,3 +15,13 @@ projects/**/*.m4a
 projects/**/*.ogg
 projects/**/*.flac
 projects/**/*.analysis.json
+
+# projetos do usuário ficam só na máquina (música e letra são de terceiros);
+# só o template e as demos com texto original são versionados
+/projects/*
+!/projects/_template/
+!/projects/demo-neon/
+!/projects/demo-candy/
+/entrada/*.mp3
+/entrada/*.m4a
+/entrada/*.wav

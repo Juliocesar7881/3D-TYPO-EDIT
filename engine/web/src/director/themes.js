@@ -18,6 +18,15 @@ export const STYLES = {
   serif: { font: 'abril', depth: 0.16, bevel: 0.02, face: { type: 'chrome', color: '#ffffff' }, side: { type: 'chrome', color: '$accentDark' } },
   card: { font: 'dmserif', depth: 0, face: { type: 'flat', color: '#efece4' }, tracking: 0.12 },
   tech: { font: 'russo', depth: 0.22, bevel: 0.02, face: { type: 'gradient', color: '#ffffff', color2: '$accent', metalness: 0.6 }, side: { type: 'neon', color: '$accent', intensity: 1.1 } },
+  // ---- premium (refeitos com base nas referências) ----
+  chromePro: { font: 'anton', depth: 0.3, bevel: 0.055, bevelSegments: 5, face: { type: 'chrome', color: '#ffffff', roughness: 0.07 }, side: { type: 'chrome', color: '$accentLight', roughness: 0.15 } },
+  hologram: { font: 'bowlby', depth: 0.3, bevel: 0.05, bevelSegments: 4, face: { type: 'hologram', colors: ['$accent', '$accent2', '$accent3'] }, side: { type: 'metal', color: '$accentDark', roughness: 0.25 } },
+  whiteHot: { font: 'bebas', depth: 0.16, bevel: 0.02, face: { type: 'glow', color: '#ffffff', intensity: 1.02 }, side: { type: 'glow', color: '$accent', intensity: 1.35 } },
+  neonTube2: { font: 'righteous', depth: 0, hideFace: true, stroke: { width: 0.15, mat: { type: 'neon', color: '$accent', intensity: 0.8 }, z: 'center' }, stroke2: { width: 0.032, mat: { type: 'neon', color: '$accentLight', intensity: 2.8 }, z: 'front' } },
+  chromeGrunge: { font: 'archivo', depth: 0.3, bevel: 0.04, face: { type: 'chrome', color: '#f2f2f2', roughness: 0.22, grunge: 0.75 }, side: { type: 'metal', color: '$accentDark', grunge: 0.5 } },
+  elegant: { font: 'cinzel', depth: 0.05, bevel: 0.008, face: { type: 'glow', color: '#ffffff', intensity: 1.15 }, side: { type: 'glow', color: '$accent', intensity: 0.8 }, stroke: { width: 0.024, mat: { type: 'neon', color: '$accent', intensity: 2.2 }, z: 'back' } },
+  elegantOutline: { font: 'italiana', depth: 0, hideFace: true, tracking: 0.08, stroke: { width: 0.034, mat: { type: 'glow', color: '#fff0f6', intensity: 1.6 }, z: 'center' } },
+  textured: { font: 'anton', depth: 0.26, bevel: 0.03, face: { type: 'matte', color: '#efe9de', roughness: 0.6, grunge: 0.9 }, side: { type: 'metal', color: '$accent', roughness: 0.3 }, stroke: { width: 0.07, mat: { type: 'flat', color: '#ffffff' }, z: 'back' } },
   // ---- candy ----
   candy: {
     font: 'titan', depth: 0.34, bevel: 0.08, bevelSegments: 4,
@@ -81,22 +90,31 @@ const CAM_CANDY = {
 
 export const THEMES = {
   neon: {
-    palette: ['#2de2ff', '#ff2bd6', '#8a5cff', '#ff4f9a', '#3a6bff', '#ffd166', '#46ffb5'],
+    // paleta enxuta e harmônica; a cor de destaque muda por SEÇÃO (sectionLen shots)
+    palette: ['#9b5cff', '#ff3fb4', '#3fd2ff', '#ffb36b'],
+    sectionLen: 3,
     shadow: '#000000',
-    background: { kind: 'nebula', base: '#030108', intensity: 0.95, stars: 1, moodFollow: true },
+    background: { kind: 'smoke', light: '#d9c8ff', lightIntensity: 1.6, ambient: '#08060f', dark: '#020105', colors: ['#5b2bff', '#ff2bd6', '#2de2ff'], tint: 0.3, moodFollow: true, stars: 0.6 },
     env: { kind: 'studio-neon' },
-    styles: { chrome: 3, chromeTint: 2, neon: 2, neonFill: 1.6, neonDuo: 1.5, gradient: 1.4, holo: 0.7, glowWhite: 1, neonTube: 0.8, chromeBold: 1 },
-    anims: ANIMS_NEON,
-    camera: CAM_NEON,
-    layouts: { single: 2, stack: 2, line: 1.4, cascade: 1, vertical: 0.5, arc: 0.6, scatter3d: 0.7, ring: 0.4 },
-    decor: { streakSwirl: 2, streakCross: 1.6, streakOrbit: 1, neonRing: 1.2, glassRing: 0.9, halo: 1, shards: 1.3, sparkleBurst: 1.2, lasers: 0.5, tunnel: 0.3, grid: 0.3 },
-    decorPerShot: [1, 3],
+    styles: { chromePro: 3, hologram: 2.5, whiteHot: 2, neonTube2: 1.6, chromeTint: 1.3, chromeGrunge: 1, gradient: 1, elegant: 0.8, textured: 0.7 },
+    anims: {
+      in: { scatter: 2, zoom: 1.4, rise: 1.4, trackIn: 1.2, flip: 1, slide: 1, unfold: 0.8, glitch: 0.6, fade: 0.6 },
+      out: { scatter: 1.5, flyForward: 1.2, fade: 1, explode: 0.8, glitch: 0.5 },
+      idle: { float: 2, shimmer: 0.8, pulse: 1 },
+    },
+    camera: {
+      moves: { push: 3, pull: 1.5, orbitL: 1.2, orbitR: 1.2, dutch: 1.4, hero: 1.2, craneUp: 0.8, craneDown: 0.6, slideL: 0.6, slideR: 0.6, macro: 0.5, spiral: 0.35 },
+      transitions: { whip: 3, zoom: 1.2, smooth: 0.8, spin: 0.4 },
+      shake: 0.4, k: 0.75, tilt: 0.55, fill: 0.72, fovRange: [-4, 6],
+    },
+    layouts: { single: 3, stack: 2.2, line: 1.2, cascade: 0.6, arc: 0.35, vertical: 0.3, scatter3d: 0.5 },
+    decor: { glassShards: 1.6, sparks: 1.8, glow: 1.6, lightning: 1.1, beams: 0.8, chromeStars: 0.6, sparkleBurst: 0.7, streakSwirl: 0.35 },
+    decorPerShot: [1, 2],
     particles: [
-      { type: 'dust', count: 12000, size: [0.02, 0.07], colors: ['#ffffff', '#cfe8ff', '$p0', '$p2'], intensity: 1.6, drift: 0.5, twinkle: 0.6 },
-      { type: 'bokeh', count: 420, size: [0.12, 0.42], colors: ['$p0', '$p1', '$p2', '$p3'], intensity: 0.9, drift: 0.8, twinkle: 0.2 },
-      { type: 'sparkle', count: 260, size: [0.08, 0.26], colors: ['#ffffff', '$p0', '$p1'], intensity: 2.6, drift: 0.4, twinkle: 0.9 },
+      { type: 'dust', count: 6000, size: [0.015, 0.05], colors: ['#ffffff', '#e2d8ff'], intensity: 1.2, drift: 0.4, twinkle: 0.6 },
+      { type: 'bokeh', count: 160, size: [0.15, 0.5], colors: ['$p0', '$p1', '$p2'], intensity: 0.45, drift: 0.7, twinkle: 0.2 },
     ],
-    fx: { bloom: 1.0, bloomThreshold: 0.95, chromatic: 0.35, vignette: 0.42, grain: 0.16, saturation: 1.14, contrast: 1.06, anamorphic: 0.22, exposure: 1.0, tonemap: 'aces' },
+    fx: { bloom: 0.85, bloomThreshold: 1.0, chromatic: 0.25, vignette: 0.55, grain: 0.12, saturation: 1.05, contrast: 1.12, anamorphic: 0.3, rays: 0.3, flare: 0.55, exposure: 1.0, tonemap: 'aces' },
   },
   chrome: {
     palette: ['#ffffff', '#9fd8ff', '#ff4f6d', '#c084ff', '#ffd27a'],

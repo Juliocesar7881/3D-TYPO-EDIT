@@ -7,6 +7,9 @@ import { planEdit } from './director/auto.js';
 import { buildWorld } from './director/builder.js';
 import { buildEnvironment } from './world/env.js';
 import { Background } from './world/background.js';
+import { Sky } from './world/sky.js';
+import { SHARED } from './world/materials.js';
+import { RNG } from './core/rng.js';
 import { PostPipeline } from './post/pipeline.js';
 import { Overlay2D, loadOverlayFonts } from './post/overlay.js';
 import { AudioReactive } from './core/audio.js';
@@ -58,11 +61,59 @@ async function boot() {
 
   const duration = S.duration;
   const plan = planEdit({ ...S, duration }, theme, fonts, audio);
-  const ctx = { quality, noise, audio, seed, shake: (S.director?.shake ?? theme.camera.shake ?? 0.5), aspect: W / H, resScale: W / (out.width || 1920), letterFlash: fx.letterFlash ?? 1 };
+  const ctx = { quality, noise, audio, seed, shake: (S.director?.shake ?? theme.camera.shake ?? 0.5), aspect: W / H, resScale: W / (out.width || 1920), letterFlash: fx.letterFlash ?? 1, W, H };
   const env = buildEnvironment(renderer, theme);
   const world = buildWorld(plan, theme, fonts, ctx, env);
   const bg = new Background(theme);
   const post = new PostPipeline(renderer, W, H, fx, quality);
+  // céu volumétrico (clouds/smoke/space): luz sempre atrás do texto de cada shot
+  const SKY_KINDS = ['clouds', 'smoke', 'space'];
+  const sky = SKY_KINDS.includes(theme.background?.kind) ? new Sky(renderer, theme, { resScale: W / (out.width || 1920) }) : null;
+  const shotSkyQ = [];
+  if (sky) {
+    const worldUp = new THREE.Vector3(0, 1, 0);
+    const lp = sky.lightPano.clone();
+    const rightP = new THREE.Vector3().crossVectors(lp, worldUp).normalize();
+    const upP = new THREE.Vector3().crossVectors(rightP, lp).normalize();
+    const MP = new THREE.Matrix4().makeBasis(rightP, upP, lp.clone().negate());
+    plan.shots.forEach((s, i) => {
+      const rig = world.camDir.rigs[i].rig;
+      const P = rig.sample((s.start + s.end) / 2, {});
+      const fwd = P.target.clone().sub(P.pos).normalize();
+      const r = new RNG((seed * 7919 + i * 104729) >>> 0);
+      const side = new THREE.Vector3().crossVectors(fwd, worldUp).normalize();
+      const up2 = new THREE.Vector3().crossVectors(side, fwd).normalize();
+      const Ld = fwd.clone().addScaledVector(side, r.range(-0.42, 0.42) * (theme.background.lightSpread ?? 1)).addScaledVector(up2, r.range(0.1, 0.32)).normalize();
+      const rightW = new THREE.Vector3().crossVectors(Ld, worldUp).normalize();
+      const upW = new THREE.Vector3().crossVectors(rightW, Ld).normalize();
+      const MW = new THREE.Matrix4().makeBasis(rightW, upW, Ld.clone().negate());
+      // mundo -> panorama
+      const M = MP.clone().multiply(MW.clone().transpose());
+      shotSkyQ.push(new THREE.Quaternion().setFromRotationMatrix(M));
+    });
+  }
+  const skyQ = new THREE.Quaternion();
+  const skyDrift = new THREE.Quaternion();
+  const lightW = new THREE.Vector3();
+  const camFwd = new THREE.Vector3();
+  const tintC = new THREE.Color();
+  const whiteC = new THREE.Color(1, 1, 1);
+  function shotBlend(t) {
+    let i = 0;
+    for (let j = 0; j < plan.shots.length; j++) {
+      const s = plan.shots[j];
+      const lead = s.transition ? s.transition.dur * 0.62 : 0;
+      if (t >= s.start - lead) i = j;
+    }
+    const s = plan.shots[i];
+    let u = 1;
+    if (i > 0 && s.transition) {
+      const a = s.start - s.transition.dur * 0.62;
+      u = clamp((t - a) / Math.max(0.05, s.transition.dur));
+      u = u * u * (3 - 2 * u);
+    }
+    return { i, u };
+  }
   // cards 2D (intro/outro): "cards": [...] ou atalhos "intro"/"outro"
   const cards = [...(S.cards || [])];
   if (S.intro) cards.push({ from: 0, ...S.intro, to: S.intro.to ?? S.intro.until ?? 2 });
@@ -102,6 +153,7 @@ async function boot() {
   function renderAt(t, frame) {
     const beat = audio.hasAudio ? audio.beatPulse(t, 0.16) : 0;
     const hit = audio.hasAudio ? audio.hitPulse(t, 0.2) : 0;
+    SHARED.time.value = t;
     world.camDir.apply(t);
     const cam = world.camera;
     cam.updateMatrixWorld(true);
@@ -122,8 +174,38 @@ async function boot() {
         uni.value.copy(baseBg[k]).lerp(c, 0.85);
       }
     }
-    bg.update(t, cam, beat * (fx.bgPulse ?? 0.4));
-    post.renderScene(bg, world.scene, cam);
+    let lightUV = null, lightVis = 0;
+    if (sky) {
+      const { i, u } = shotBlend(t);
+      skyQ.copy(i > 0 && u < 1 ? shotSkyQ[i - 1] : shotSkyQ[i]);
+      if (i > 0 && u < 1) skyQ.slerp(shotSkyQ[i], u);
+      skyDrift.setFromAxisAngle(yAxis, t * (theme.background.drift ?? 0.012));
+      sky.setRotation(skyDrift.multiply(skyQ));
+      // tinta da seção (cor do shot) por cima do céu
+      const k = theme.background.tint ?? 0.22;
+      const mc = moodCols[i]?.[0];
+      if (mc) {
+        tintC.copy(whiteC).lerp(mc, k);
+        if (i > 0 && u < 1) tintC.lerp(new THREE.Color().copy(whiteC).lerp(moodCols[i - 1][0], k), 1 - u);
+        const l = tintC.r * 0.3 + tintC.g * 0.59 + tintC.b * 0.11;
+        tintC.multiplyScalar(1 / Math.max(0.2, l));
+      }
+      sky.update(t, cam, beat * (fx.bgPulse ?? 0.3), mc ? tintC : null);
+      // luz na tela (raios / flare)
+      sky.lightWorld(lightW);
+      cam.getWorldDirection(camFwd);
+      const facing = camFwd.dot(lightW);
+      if (facing > 0.05) {
+        const p = cam.position.clone().addScaledVector(lightW, 500).project(cam);
+        lightUV = [p.x * 0.5 + 0.5, p.y * 0.5 + 0.5];
+        const edge = Math.max(Math.abs(p.x), Math.abs(p.y));
+        lightVis = clamp((facing - 0.05) / 0.4) * clamp((1.6 - edge) / 0.6);
+      }
+      post.renderScene(sky, world.scene, cam);
+    } else {
+      bg.update(t, cam, beat * (fx.bgPulse ?? 0.4));
+      post.renderScene(bg, world.scene, cam);
+    }
     // efeitos de tempo
     let flash = 0, glitch = 0;
     for (const s of plan.shots) {
@@ -153,7 +235,7 @@ async function boot() {
       overlay: ovOn ? overlay.tex : null,
       bloom: (fx.bloom ?? 1) * (1 + beat * (fx.bloomPulse ?? 0.3)),
       chromatic: (fx.chromatic ?? 0.3) + hit * (fx.chromaticPulse ?? 0.35) + glitch * 0.8,
-      flash, glitch, fade, time: t, frame, speed,
+      flash, glitch, fade, time: t, frame, speed, lightUV, lightVis: lightVis * (1 + beat * 0.25),
       tonemap: TONEMAP[fx.tonemap] ?? 1,
     });
   }

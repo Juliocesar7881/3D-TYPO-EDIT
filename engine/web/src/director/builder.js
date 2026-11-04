@@ -6,6 +6,7 @@ import { Particles } from '../world/particles.js';
 import { Streak } from '../world/streaks.js';
 import { Prop, RingTunnel } from '../world/props.js';
 import { ShotRig, CameraDirector } from '../camera/rig.js';
+import { GlassShards, Lightning, Sparks, LightBeams, BackGlow } from '../world/fx3d.js';
 import { clamp } from '../core/easing.js';
 
 const CANDY_KINDS = { hearts: 'heart', stars: 'star', gumballs: 'gumball', clouds: 'cloud', lollipops: 'lollipop', donuts: 'donut', pills: 'pill', cubes: 'cube' };
@@ -39,6 +40,41 @@ function buildDecor(d, shot, anchor, ctx, theme, nextShot, worldRoot, updatables
   const pal = theme.palette;
   const add = (obj, parent = anchor) => { parent.add(obj.object); updatables.push(obj); return obj; };
   switch (d.type) {
+    case 'glassShards': {
+      add(new GlassShards({ S, blockW: d.blockW, blockH: d.blockH, count: r.int(12, 20), t0: shot.start - 0.05, t1, seed: d.seed, tint: r.pick(['#d8ecff', '#ffffff', d.accent]), edge: r.chance(0.5) ? '#ffffff' : d.accent }));
+      break;
+    }
+    case 'lightning': {
+      add(new Lightning({ S, blockW: d.blockW, blockH: d.blockH, count: r.int(2, 4), color: d.accent, t0: shot.start, t1, seed: d.seed, resolution: [ctx.W || 1920, ctx.H || 1080] }));
+      break;
+    }
+    case 'sparks': {
+      const ev = [shot.start];
+      if (ctx.audio && ctx.audio.hasAudio) {
+        for (const o of ctx.audio.strongOnsets) {
+          if (o.t > shot.start + 0.25 && o.t < t1 - 0.1 && o.s > 0.7 && ev.length < 3 && o.t - ev[ev.length - 1] > 0.35) ev.push(o.t);
+        }
+      }
+      add(new Sparks({ S, blockW: d.blockW, blockH: d.blockH, events: ev, perEvent: r.int(50, 80), color: r.chance(0.5) ? d.accent : '#ffb36b', seed: d.seed }));
+      break;
+    }
+    case 'beams': {
+      add(new LightBeams({ S, count: r.int(3, 5), color: d.accent, t0, t1, seed: d.seed }));
+      break;
+    }
+    case 'glow': {
+      add(new BackGlow({ S, color: d.accent, t0, t1, intensity: 0.8 }));
+      break;
+    }
+    case 'chromeStars': {
+      const n = r.int(4, 7);
+      for (let i = 0; i < n; i++) {
+        let [x, y] = [r.range(-1, 1), r.range(-1, 1)];
+        if (Math.abs(x) < 0.5 && Math.abs(y) < 0.5) x = Math.sign(x || 1) * r.range(0.55, 1);
+        add(new Prop({ kind: 'star', material: { type: 'chrome', color: r.chance(0.5) ? '#ffffff' : d.accent }, pos: [x * (d.blockW * 0.6 + S * 0.2), y * (d.blockH * 0.6 + S * 0.2), -S * r.range(-0.2, 0.6)], scale: S * r.range(0.05, 0.1), spin: [r.range(-1.2, 1.2), r.range(-1.6, 1.6), r.range(-0.8, 0.8)], bob: S * 0.02, t0: t0 + i * 0.04, t1, inAnim: 'pop', seed: d.seed + i }, ctx));
+      }
+      break;
+    }
     case 'streakSwirl': {
       const n = r.int(1, 2);
       for (let i = 0; i < n; i++) {

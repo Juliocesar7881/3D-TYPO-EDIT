@@ -50,6 +50,7 @@ export class Word3D {
       bevelSegments: q.bevelSegments ?? st.bevelSegments ?? 3,
       curveSegments: q.curveSegments ?? st.curveSegments ?? 8,
       strokeWidth: st.stroke?.width ?? 0,
+      strokeWidth2: st.stroke2?.width ?? 0,
       plate: !!(st.shadow || st.plate),
     };
     // layout horizontal com kerning
@@ -110,6 +111,16 @@ export class Word3D {
             pivot.add(pMesh);
           }
         }
+      }
+      // segundo contorno (núcleo quente do neon de tubo duplo)
+      if (g.stroke2 && st.stroke2) {
+        const s2Mat = createMaterial(st.stroke2.mat || { type: 'neon', color: '#ffffff', intensity: 3 }, this.ctx);
+        const s2Mesh = new THREE.Mesh(g.stroke2, s2Mat);
+        const z2 = st.stroke2.z ?? 'front';
+        s2Mesh.position.z = z2 === 'front' ? depth / 2 + 0.008 : z2 === 'center' ? 0.004 : -depth / 2 - 0.006;
+        s2Mesh.renderOrder = 3;
+        pivot.add(s2Mesh);
+        mats.push(s2Mat);
       }
       // sombra projetada "drop shadow" (chapa escura deslocada)
       if (st.shadow && g.plate) {

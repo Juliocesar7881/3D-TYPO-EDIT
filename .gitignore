@@ -1,0 +1,17 @@
+node_modules/
+# saídas de render e caches
+out/
+**/out/
+.cache/
+**/.cache/
+*.rgba
+# vídeos de referência (baixados localmente, não versionar)
+referencias/videos/
+referencias/frames/
+# áudio dos projetos (cada um usa a música dele)
+projects/**/*.mp3
+projects/**/*.wav
+projects/**/*.m4a
+projects/**/*.ogg
+projects/**/*.flac
+projects/**/*.analysis.json

@@ -1,0 +1,262 @@
+// Pós-processamento próprio (mais leve que o UnrealBloomPass):
+// cena HDR com MSAA -> bloom em cadeia de mips (13-tap down / tent up) ->
+// streak anamórfico -> composição final (tonemap ACES, aberração cromática,
+// vinheta, grão, grading, flash, fade) com dither para não bandear degradês.
+import * as THREE from 'three';
+
+const FS_VERT = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`;
+
+function rt(w, h, opts = {}) {
+  return new THREE.WebGLRenderTarget(Math.max(1, w), Math.max(1, h), {
+    type: THREE.HalfFloatType,
+    format: THREE.RGBAFormat,
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.LinearFilter,
+    depthBuffer: false,
+    ...opts,
+  });
+}
+
+export class PostPipeline {
+  constructor(renderer, w, h, fx = {}, quality = {}) {
+    this.renderer = renderer;
+    this.w = w;
+    this.h = h;
+    this.fx = fx;
+    const samples = quality.msaa ?? 4;
+    this.sceneRT = new THREE.WebGLRenderTarget(w, h, {
+      type: THREE.HalfFloatType,
+      samples,
+      depthBuffer: true,
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+    });
+    this.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2));
+    this.quad.frustumCulled = false;
+    this.qScene = new THREE.Scene();
+    this.qScene.add(this.quad);
+    this.qCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+    // cadeia de bloom
+    this.levels = quality.bloomLevels ?? 6;
+    this.down = [];
+    this.up = [];
+    let bw = w >> 1, bh = h >> 1;
+    for (let i = 0; i < this.levels; i++) {
+      this.down.push(rt(bw, bh));
+      this.up.push(rt(bw, bh));
+      bw = Math.max(1, bw >> 1);
+      bh = Math.max(1, bh >> 1);
+    }
+    // streak anamórfico em baixa resolução
+    this.streakA = rt(w >> 2, h >> 3);
+    this.streakB = rt(w >> 2, h >> 3);
+
+    this.prefilterMat = new THREE.ShaderMaterial({
+      uniforms: { tSrc: { value: null }, uTexel: { value: new THREE.Vector2() }, uThreshold: { value: 1 }, uKnee: { value: 0.5 } },
+      vertexShader: FS_VERT,
+      fragmentShader: /* glsl */ `
+        uniform sampler2D tSrc; uniform vec2 uTexel; uniform float uThreshold, uKnee; varying vec2 vUv;
+        vec3 s(vec2 o){ return texture2D(tSrc, vUv + o*uTexel).rgb; }
+        float lum(vec3 c){ return dot(c, vec3(0.2126,0.7152,0.0722)); }
+        vec3 karis(vec3 a, vec3 b, vec3 c, vec3 d){ float wa=1.0/(1.0+lum(a)), wb=1.0/(1.0+lum(b)), wc=1.0/(1.0+lum(c)), wd=1.0/(1.0+lum(d)); return (a*wa+b*wb+c*wc+d*wd)/(wa+wb+wc+wd); }
+        void main(){
+          vec3 A=s(vec2(-2,-2)),B=s(vec2(0,-2)),C=s(vec2(2,-2)),D=s(vec2(-1,-1)),E=s(vec2(1,-1)),F=s(vec2(-2,0)),G=s(vec2(0,0)),H=s(vec2(2,0)),I=s(vec2(-1,1)),J=s(vec2(1,1)),K=s(vec2(-2,2)),L=s(vec2(0,2)),M=s(vec2(2,2));
+          vec3 c = karis(D,E,I,J)*0.5 + karis(A,B,F,G)*0.125 + karis(B,C,G,H)*0.125 + karis(F,G,K,L)*0.125 + karis(G,H,L,M)*0.125;
+          float br = max(c.r, max(c.g, c.b));
+          float soft = clamp(br - uThreshold + uKnee, 0.0, 2.0*uKnee);
+          soft = soft*soft / (4.0*uKnee + 1e-4);
+          float contrib = max(soft, br - uThreshold) / max(br, 1e-4);
+          gl_FragColor = vec4(c * contrib, 1.0);
+        }`,
+      depthTest: false, depthWrite: false,
+    });
+    this.downMat = new THREE.ShaderMaterial({
+      uniforms: { tSrc: { value: null }, uTexel: { value: new THREE.Vector2() } },
+      vertexShader: FS_VERT,
+      fragmentShader: /* glsl */ `
+        uniform sampler2D tSrc; uniform vec2 uTexel; varying vec2 vUv;
+        vec3 s(vec2 o){ return texture2D(tSrc, vUv + o*uTexel).rgb; }
+        void main(){
+          vec3 A=s(vec2(-2,-2)),B=s(vec2(0,-2)),C=s(vec2(2,-2)),D=s(vec2(-1,-1)),E=s(vec2(1,-1)),F=s(vec2(-2,0)),G=s(vec2(0,0)),H=s(vec2(2,0)),I=s(vec2(-1,1)),J=s(vec2(1,1)),K=s(vec2(-2,2)),L=s(vec2(0,2)),M=s(vec2(2,2));
+          vec3 c = (D+E+I+J)*0.125 + (A+C+K+M)*0.03125 + (B+F+H+L)*0.0625 + G*0.125;
+          gl_FragColor = vec4(c, 1.0);
+        }`,
+      depthTest: false, depthWrite: false,
+    });
+    this.upMat = new THREE.ShaderMaterial({
+      uniforms: { tSrc: { value: null }, tPrev: { value: null }, uTexel: { value: new THREE.Vector2() }, uRadius: { value: 1 }, uMix: { value: 1 } },
+      vertexShader: FS_VERT,
+      fragmentShader: /* glsl */ `
+        uniform sampler2D tSrc, tPrev; uniform vec2 uTexel; uniform float uRadius, uMix; varying vec2 vUv;
+        void main(){
+          vec2 o = uTexel * uRadius;
+          vec3 c = texture2D(tPrev, vUv + vec2(-o.x, -o.y)).rgb + texture2D(tPrev, vUv + vec2(0.0, -o.y)).rgb*2.0 + texture2D(tPrev, vUv + vec2(o.x, -o.y)).rgb
+                 + texture2D(tPrev, vUv + vec2(-o.x, 0.0)).rgb*2.0 + texture2D(tPrev, vUv).rgb*4.0 + texture2D(tPrev, vUv + vec2(o.x, 0.0)).rgb*2.0
+                 + texture2D(tPrev, vUv + vec2(-o.x, o.y)).rgb + texture2D(tPrev, vUv + vec2(0.0, o.y)).rgb*2.0 + texture2D(tPrev, vUv + vec2(o.x, o.y)).rgb;
+          c /= 16.0;
+          gl_FragColor = vec4(texture2D(tSrc, vUv).rgb + c * uMix, 1.0);
+        }`,
+      depthTest: false, depthWrite: false,
+    });
+    this.streakMat = new THREE.ShaderMaterial({
+      uniforms: { tSrc: { value: null }, uTexel: { value: new THREE.Vector2() }, uStep: { value: 1 } },
+      vertexShader: FS_VERT,
+      fragmentShader: /* glsl */ `
+        uniform sampler2D tSrc; uniform vec2 uTexel; uniform float uStep; varying vec2 vUv;
+        void main(){
+          vec3 c = vec3(0.0); float wsum = 0.0;
+          for (int i = -7; i <= 7; i++) { float fi = float(i); float w = exp(-abs(fi)*0.28); c += texture2D(tSrc, vUv + vec2(fi*uStep*uTexel.x, 0.0)).rgb * w; wsum += w; }
+          gl_FragColor = vec4(c / wsum, 1.0);
+        }`,
+      depthTest: false, depthWrite: false,
+    });
+    this.compMat = new THREE.ShaderMaterial({
+      uniforms: {
+        tScene: { value: null }, tBloom: { value: null }, tStreak: { value: null },
+        uBloom: { value: 1 }, uStreak: { value: 0 }, uStreakTint: { value: new THREE.Color('#9fd8ff') },
+        uExposure: { value: 1 }, uCA: { value: 0.3 }, uVignette: { value: 0.35 }, uGrain: { value: 0.2 },
+        uSat: { value: 1.08 }, uContrast: { value: 1.06 }, uLift: { value: new THREE.Vector3(0, 0, 0) },
+        uGain: { value: new THREE.Vector3(1, 1, 1) }, uFlash: { value: 0 }, uFlashColor: { value: new THREE.Color('#ffffff') },
+        uFade: { value: 0 }, uTime: { value: 0 }, uFrame: { value: 0 }, uRes: { value: new THREE.Vector2(w, h) },
+        uLetterbox: { value: 0 }, uTonemap: { value: 1 }, uGlitch: { value: 0 },
+      },
+      vertexShader: FS_VERT,
+      fragmentShader: /* glsl */ `
+        precision highp float;
+        uniform sampler2D tScene, tBloom, tStreak;
+        uniform float uBloom, uStreak, uExposure, uCA, uVignette, uGrain, uSat, uContrast, uFlash, uFade, uTime, uFrame, uLetterbox, uTonemap, uGlitch;
+        uniform vec3 uLift, uGain, uFlashColor, uStreakTint; uniform vec2 uRes;
+        varying vec2 vUv;
+        float hash(vec2 p){ p = fract(p*vec2(443.897, 441.423)); p += dot(p, p.yx+19.19); return fract((p.x+p.y)*p.x); }
+        vec3 aces(vec3 x){ const float a=2.51, b=0.03, c=2.43, d=0.59, e=0.14; return clamp((x*(a*x+b))/(x*(c*x+d)+e), 0.0, 1.0); }
+        vec3 toSRGB(vec3 c){ return mix(c*12.92, 1.055*pow(c, vec3(1.0/2.4)) - 0.055, step(0.0031308, c)); }
+        void main(){
+          vec2 uv = vUv;
+          if (uGlitch > 0.0) {
+            float band = floor(uv.y * 24.0 + floor(uTime*30.0)*3.0);
+            float g = step(1.0 - uGlitch*0.35, hash(vec2(band, floor(uTime*30.0))));
+            uv.x += (hash(vec2(band, 7.0)) - 0.5) * 0.08 * g * uGlitch;
+          }
+          vec2 dc = uv - 0.5;
+          float r2 = dot(dc, dc);
+          vec2 caOff = dc * r2 * uCA * 0.06 + vec2(uGlitch*0.006, 0.0);
+          vec3 col;
+          col.r = texture2D(tScene, uv + caOff).r;
+          col.g = texture2D(tScene, uv).g;
+          col.b = texture2D(tScene, uv - caOff).b;
+          vec3 bloom = texture2D(tBloom, uv).rgb;
+          vec3 bloomCA = vec3(texture2D(tBloom, uv + caOff*2.0).r, bloom.g, texture2D(tBloom, uv - caOff*2.0).b);
+          col += bloomCA * uBloom;
+          col += texture2D(tStreak, uv).rgb * uStreak * uStreakTint;
+          col *= uExposure;
+          col = mix(col, uFlashColor * 3.0, uFlash * 0.85);
+          col = uTonemap > 0.5 ? aces(col) : clamp(col, 0.0, 1.0);
+          // grading
+          col = col * uGain + uLift * (1.0 - col);
+          float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
+          col = mix(vec3(l), col, uSat);
+          col = clamp((col - 0.5) * uContrast + 0.5, 0.0, 1.0);
+          // vinheta
+          float vig = smoothstep(0.85, 0.2, length(dc * vec2(uRes.x/uRes.y, 1.0)) * 0.9);
+          col *= mix(1.0, vig, uVignette);
+          col = mix(col, vec3(0.0), uFade);
+          col = toSRGB(col);
+          // grão + dither (evita banding no degradê escuro)
+          float n = hash(uv * uRes + vec2(uFrame * 17.0, uFrame * 31.0));
+          float n2 = hash(uv * uRes * 1.37 + vec2(uFrame * 7.0, uFrame * 13.0));
+          col += (n + n2 - 1.0) * (uGrain * 0.045 + 1.0/255.0);
+          if (uLetterbox > 0.0) { float bar = uLetterbox * 0.5; if (uv.y < bar || uv.y > 1.0 - bar) col = vec3(0.0); }
+          gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+        }`,
+      depthTest: false, depthWrite: false,
+    });
+  }
+
+  _pass(mat, target) {
+    this.quad.material = mat;
+    this.renderer.setRenderTarget(target);
+    this.renderer.render(this.qScene, this.qCam);
+  }
+
+  // desenha fundo + cena no RT HDR
+  renderScene(bg, scene, camera) {
+    const r = this.renderer;
+    r.setRenderTarget(this.sceneRT);
+    r.autoClear = false;
+    r.setClearColor(0x000000, 1);
+    r.clear(true, true, true);
+    if (bg) r.render(bg.scene, bg.camera);
+    r.render(scene, camera);
+    r.autoClear = true;
+  }
+
+  composite(state) {
+    const fx = { ...this.fx, ...state };
+    const src = this.sceneRT.texture;
+    // bloom
+    const p = this.prefilterMat.uniforms;
+    p.tSrc.value = src;
+    p.uTexel.value.set(1 / this.w, 1 / this.h);
+    p.uThreshold.value = fx.bloomThreshold ?? 0.9;
+    p.uKnee.value = 0.45;
+    this._pass(this.prefilterMat, this.down[0]);
+    for (let i = 1; i < this.levels; i++) {
+      this.downMat.uniforms.tSrc.value = this.down[i - 1].texture;
+      this.downMat.uniforms.uTexel.value.set(1 / this.down[i - 1].width, 1 / this.down[i - 1].height);
+      this._pass(this.downMat, this.down[i]);
+    }
+    // sobe somando
+    let prev = this.down[this.levels - 1];
+    for (let i = this.levels - 2; i >= 0; i--) {
+      const u = this.upMat.uniforms;
+      u.tSrc.value = this.down[i].texture;
+      u.tPrev.value = prev.texture;
+      u.uTexel.value.set(1 / prev.width, 1 / prev.height);
+      u.uRadius.value = fx.bloomRadius ?? 1.0;
+      u.uMix.value = 1.0;
+      this._pass(this.upMat, this.up[i]);
+      prev = this.up[i];
+    }
+    const bloomTex = this.up[0].texture;
+    // streak anamórfico (opcional)
+    const streak = fx.anamorphic ?? 0;
+    if (streak > 0) {
+      const s = this.streakMat.uniforms;
+      s.tSrc.value = this.down[1].texture;
+      s.uTexel.value.set(1 / this.streakA.width, 1 / this.streakA.height);
+      s.uStep.value = 1.5;
+      this._pass(this.streakMat, this.streakA);
+      s.tSrc.value = this.streakA.texture;
+      s.uStep.value = 5.0;
+      this._pass(this.streakMat, this.streakB);
+      s.tSrc.value = this.streakB.texture;
+      s.uStep.value = 14.0;
+      this._pass(this.streakMat, this.streakA);
+    }
+    const c = this.compMat.uniforms;
+    c.tScene.value = src;
+    c.tBloom.value = bloomTex;
+    c.tStreak.value = this.streakA.texture;
+    c.uBloom.value = (fx.bloom ?? 1) * 0.42;
+    c.uStreak.value = streak;
+    if (fx.streakTint) c.uStreakTint.value.set(fx.streakTint);
+    c.uExposure.value = fx.exposure ?? 1;
+    c.uCA.value = fx.chromatic ?? 0.3;
+    c.uVignette.value = fx.vignette ?? 0.35;
+    c.uGrain.value = fx.grain ?? 0.2;
+    c.uSat.value = fx.saturation ?? 1.08;
+    c.uContrast.value = fx.contrast ?? 1.05;
+    const lift = fx.lift || [0, 0, 0], gain = fx.gain || [1, 1, 1];
+    c.uLift.value.set(...lift);
+    c.uGain.value.set(...gain);
+    c.uFlash.value = fx.flash ?? 0;
+    if (fx.flashColor) c.uFlashColor.value.set(fx.flashColor);
+    c.uFade.value = fx.fade ?? 0;
+    c.uTime.value = fx.time ?? 0;
+    c.uFrame.value = fx.frame ?? 0;
+    c.uLetterbox.value = fx.letterbox ?? 0;
+    c.uGlitch.value = fx.glitch ?? 0;
+    this._pass(this.compMat, null);
+  }
+}

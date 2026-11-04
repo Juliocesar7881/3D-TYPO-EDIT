@@ -1,0 +1,40 @@
+// TEMPLATE — copie esta pasta para projects/<nome-da-edit>/ e edite.
+// Referência completa: .claude/skills/typo-3d/reference/cena.md
+{
+  // neon | candy | candyNight | chrome | ice | inferno | sunset
+  "theme": "neon",
+  // vertical (TikTok/Reels/Shorts) | landscape (YouTube) | square | 4k
+  "format": "vertical",
+  "output": { "fps": 60, "crf": 16 },
+  "seed": 7,
+
+  // coloque o áudio nesta pasta; offset = segundo da MÚSICA onde a edit começa
+  "audio": { "file": "musica.mp3", "offset": 0 },
+
+  // Opção A: arquivo de letra com tempo (LRC / SRT / "tempo PALAVRA" por linha)
+  // "lyrics": "letra.lrc",
+  // "snapToBeats": true,
+
+  // Opção B: palavras com tempo (segundos da EDIT)
+  "words": [
+    { "text": "PRIMEIRA", "t": 0.50 },
+    { "text": "PALAVRA", "t": 1.00, "accent": true },
+    { "text": "OUTRO", "t": 2.00, "break": true },
+    { "text": "SHOT", "t": 2.50 }
+  ],
+
+  "duration": 4.5,
+
+  // energy: 0.6 calmo … 1.4 frenético
+  "director": { "energy": 1.0 },
+
+  // overrides por shot (índices aparecem no --plan)
+  "shots": [
+    // { "index": 0, "layout": "stack", "move": "craneUp", "style": "chrome", "transition": "whip", "decor": ["streakSwirl"] }
+  ],
+
+  // pós-processamento (opcional; o tema já define)
+  "fx": {
+    // "bloom": 1.0, "chromatic": 0.3, "grain": 0.15, "anamorphic": 0.2
+  }
+}

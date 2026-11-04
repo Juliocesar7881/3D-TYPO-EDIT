@@ -1,0 +1,29 @@
+// Cena demo candy (texto original), vertical para TikTok/Reels/Shorts.
+// Gere o áudio com: node engine/cli/demo-beat.mjs projects/demo-candy/beat.wav 13
+{
+  "theme": "candy",
+  "format": "vertical",
+  "output": { "fps": 30 },
+  "seed": 5,
+  "audio": { "file": "beat.wav", "offset": 0 },
+  "director": { "energy": 1.05 },
+  "words": [
+    { "text": "SO", "t": 0.50 },
+    { "text": "SWEET", "t": 0.75, "accent": true },
+    { "text": "SUGAR", "t": 1.50, "break": true },
+    { "text": "RUSH", "t": 2.00 },
+    { "text": "PINK", "t": 3.00, "break": true },
+    { "text": "CLOUDS", "t": 3.25 },
+    { "text": "BUBBLE", "t": 4.00, "break": true },
+    { "text": "POP", "t": 4.50, "solo": true },
+    { "text": "HEARTS", "t": 5.50, "break": true },
+    { "text": "BOUNCE", "t": 6.00 },
+    { "text": "CANDY", "t": 7.00, "break": true },
+    { "text": "TYPE", "t": 7.50 },
+    { "text": "SO", "t": 8.50, "break": true },
+    { "text": "CUTE", "t": 8.75 },
+    { "text": "LOVE", "t": 9.50, "break": true },
+    { "text": "IT", "t": 10.00 }
+  ],
+  "duration": 11.5
+}

@@ -1,0 +1,36 @@
+// Cena demo (texto original). Tempos em segundos da edit; batida a 120 BPM.
+// Gere o áudio com: node engine/cli/demo-beat.mjs projects/demo-neon/beat.wav 15
+{
+  "theme": "neon",
+  "format": "landscape",
+  "output": { "fps": 30 },
+  "seed": 21,
+  "audio": { "file": "beat.wav", "offset": 0 },
+  "director": { "energy": 1.0 },
+  "words": [
+    { "text": "WELCOME", "t": 0.50 },
+    { "text": "TO", "t": 1.00 },
+    { "text": "THE", "t": 1.25 },
+    { "text": "NEON", "t": 1.50, "accent": true },
+    { "text": "DREAM", "t": 2.00, "break": true },
+    { "text": "EVERY", "t": 3.00, "break": true },
+    { "text": "WORD", "t": 3.25 },
+    { "text": "IS", "t": 3.50 },
+    { "text": "ALIVE", "t": 3.75, "accent": true },
+    { "text": "FLYING", "t": 4.50, "break": true },
+    { "text": "THROUGH", "t": 5.00 },
+    { "text": "SPACE", "t": 5.50, "break": true },
+    { "text": "FEEL", "t": 6.50, "break": true },
+    { "text": "THE", "t": 7.00 },
+    { "text": "BEAT", "t": 7.25 },
+    { "text": "GLOW", "t": 8.00, "break": true },
+    { "text": "BRIGHTER", "t": 8.50 },
+    { "text": "NEVER", "t": 9.50, "break": true },
+    { "text": "STOP", "t": 10.00 },
+    { "text": "MOVING", "t": 10.50, "break": true },
+    { "text": "3D", "t": 11.50, "break": true },
+    { "text": "TYPE", "t": 12.00 },
+    { "text": "MOTION", "t": 12.50, "break": true }
+  ],
+  "duration": 14.5
+}

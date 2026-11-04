@@ -1,0 +1,21 @@
+{
+  "name": "3d-typo-edit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Motor de edits de tipografia 3D (neon / candy) com Three.js renderizado frame a frame em Chromium headless + ffmpeg.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "render": "node engine/cli/render.mjs",
+    "preview": "node engine/cli/render.mjs --preview",
+    "audio": "node engine/cli/analyze-audio.mjs",
+    "demo": "node engine/cli/render.mjs projects/demo-neon/scene.json"
+  },
+  "dependencies": {
+    "opentype.js": "^1.3.4",
+    "playwright": "1.63.0",
+    "three": "0.187.0"
+  }
+}

@@ -63,7 +63,8 @@ export const easings = {
     return f(x) + (1 - f(1)) * x; // garante spring(1) === 1
   },
   // "whip": acelera forte e freia longo (movimento de câmera de edit)
-  whip: (x) => (x < 0.35 ? 0.5 * Math.pow(x / 0.35, 3) : 1 - 0.5 * Math.pow(1 - (x - 0.35) / 0.65, 4)),
+  // (C1 contínua: expoente da freada casa a velocidade no ponto de virada)
+  whip: (x) => (x < 0.35 ? 0.5 * Math.pow(x / 0.35, 3) : 1 - 0.5 * Math.pow(1 - (x - 0.35) / 0.65, 5.5714)),
   smoothstep: (x) => x * x * (3 - 2 * x),
   smootherstep: (x) => x * x * x * (x * (x * 6 - 15) + 10),
 };

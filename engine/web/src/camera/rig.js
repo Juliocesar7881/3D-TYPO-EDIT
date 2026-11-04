@@ -76,11 +76,11 @@ export class ShotRig {
     if (u < 0) {
       const d = 1e-3;
       const v = (this.ease(d) - this.ease(0)) / d;
-      e = v * u * 0.6;
+      e = Math.max(-0.35, v * u * 0.6); // extrapola pouco (pré-roll longo não gira a câmera)
     } else if (u > 1) {
       const d = 1e-3;
       const v = (this.ease(1) - this.ease(1 - d)) / d;
-      e = 1 + v * (u - 1) * 0.6;
+      e = Math.min(1.35, 1 + v * (u - 1) * 0.6);
     } else e = this.ease(u);
     const f = this.from, g = this.to;
     const az = deg(lerp(f.az, g.az, e));

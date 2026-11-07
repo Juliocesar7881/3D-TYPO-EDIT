@@ -105,3 +105,17 @@ export async function probeDuration(file) {
     });
   });
 }
+
+// largura/altura de imagem ou vídeo (lê o stderr do ffmpeg -i)
+export async function probeSize(file) {
+  const ff = findFfmpeg();
+  return new Promise((resolve) => {
+    const p = spawn(ff, ['-hide_banner', '-i', file], { stdio: ['ignore', 'ignore', 'pipe'] });
+    let err = '';
+    p.stderr.on('data', (d) => (err += d));
+    p.on('close', () => {
+      const m = err.match(/Video:[^\n]*?\b(\d{2,5})x(\d{2,5})\b/);
+      resolve(m ? { width: +m[1], height: +m[2] } : null);
+    });
+  });
+}

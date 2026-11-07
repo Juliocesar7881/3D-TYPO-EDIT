@@ -8,6 +8,7 @@ import { buildWorld } from './director/builder.js';
 import { buildEnvironment } from './world/env.js';
 import { Background } from './world/background.js';
 import { Sky } from './world/sky.js';
+import { MediaManager, BackdropLayer } from './world/media.js';
 import { SHARED } from './world/materials.js';
 import { RNG } from './core/rng.js';
 import { PostPipeline } from './post/pipeline.js';
@@ -63,7 +64,9 @@ async function boot() {
   const plan = planEdit({ ...S, duration }, theme, fonts, audio);
   const ctx = { quality, noise, audio, seed, shake: (S.director?.shake ?? theme.camera.shake ?? 0.5), aspect: W / H, resScale: W / (out.width || 1920), letterFlash: fx.letterFlash ?? 1, W, H };
   const env = buildEnvironment(renderer, theme);
-  const world = buildWorld(plan, theme, fonts, ctx, env);
+  const media = new MediaManager(S.media || []);
+  const world = buildWorld(plan, theme, fonts, ctx, env, media);
+  const backdrops = media.backdrops().map((it) => new BackdropLayer(it, W / H));
   const bg = new Background(theme);
   const post = new PostPipeline(renderer, W, H, fx, quality);
   // céu volumétrico (clouds/smoke/space): luz sempre atrás do texto de cada shot
@@ -201,10 +204,10 @@ async function boot() {
         const edge = Math.max(Math.abs(p.x), Math.abs(p.y));
         lightVis = clamp((facing - 0.05) / 0.4) * clamp((1.6 - edge) / 0.6);
       }
-      post.renderScene(sky, world.scene, cam);
+      post.renderScene([sky, ...backdrops.filter((b) => b.update(t, beat)).map((b) => b)], world.scene, cam);
     } else {
       bg.update(t, cam, beat * (fx.bgPulse ?? 0.4));
-      post.renderScene(bg, world.scene, cam);
+      post.renderScene([bg, ...backdrops.filter((b) => b.update(t, beat))], world.scene, cam);
     }
     // efeitos de tempo
     let flash = 0, glitch = 0;
@@ -284,6 +287,7 @@ async function boot() {
       renderAt(t, Math.round(t * fps));
     },
     async renderTimeAndSend(t, workerId = 0, index = 0, url = '/__frame') {
+      await media.prepare(t);
       renderAt(t, Math.round(t * fps));
       await upload(`${url}?w=${workerId}&i=${index}`);
       return t;
@@ -291,6 +295,7 @@ async function boot() {
     // renderiza e envia o frame cru (RGBA, de baixo pra cima) ao servidor do CLI
     async renderAndSend(i, workerId = 0, url = '/__frame') {
       const t = startT + i / fps;
+      await media.prepare(t);
       renderAt(t, i);
       await upload(`${url}?w=${workerId}&i=${i}`);
       return t;

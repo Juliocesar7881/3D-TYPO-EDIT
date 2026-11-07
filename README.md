@@ -50,7 +50,7 @@ referencias/       scripts para baixar e estudar os vídeos de referência
 
 Os vídeos de referência (playlist "typo 3d") não são versionados. Para baixar todos no seu PC:
 ```powershell
-powershell -ExecutionPolicy Bypass -File referencias\baixar_referencias.ps1 -PlaylistUrl "LINK_DA_PLAYLIST"
+powershell -ExecutionPolicy Bypass -File referencias\baixar_referencias.ps1 -PlaylistUrl "https://www.youtube.com/playlist?list=PLHJ_3gLP63Zs"
 node engine/cli/ref-frames.mjs
 ```
 

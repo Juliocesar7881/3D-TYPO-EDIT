@@ -27,6 +27,10 @@ export const STYLES = {
   elegant: { font: 'cinzel', depth: 0.05, bevel: 0.008, face: { type: 'glow', color: '#ffffff', intensity: 1.15 }, side: { type: 'glow', color: '$accent', intensity: 0.8 }, stroke: { width: 0.024, mat: { type: 'neon', color: '$accent', intensity: 2.2 }, z: 'back' } },
   elegantOutline: { font: 'italiana', depth: 0, hideFace: true, tracking: 0.08, stroke: { width: 0.034, mat: { type: 'glow', color: '#fff0f6', intensity: 1.6 }, z: 'center' } },
   textured: { font: 'anton', depth: 0.26, bevel: 0.03, face: { type: 'matte', color: '#efe9de', roughness: 0.6, grunge: 0.9 }, side: { type: 'metal', color: '$accent', roughness: 0.3 }, stroke: { width: 0.07, mat: { type: 'flat', color: '#ffffff' }, z: 'back' } },
+  // ---- AMV typography (texto branco gordo minúsculo sobre vídeo) ----
+  amvBold: { font: 'poppins', depth: 0.2, bevel: 0.03, tracking: 0.0, face: { type: 'glow', color: '#ffffff', intensity: 1.0 }, side: { type: 'glow', color: '$accent', intensity: 0.9 } },
+  amvGlow: { font: 'poppins', depth: 0.06, bevel: 0.01, tracking: 0.0, face: { type: 'glow', color: '#ffffff', intensity: 1.05 }, stroke: { width: 0.06, mat: { type: 'neon', color: '$accent', intensity: 2.0 }, z: 'back' } },
+  amvChrome: { font: 'poppinsxb', depth: 0.26, bevel: 0.04, bevelSegments: 4, tracking: 0.0, face: { type: 'chrome', color: '#ffffff', roughness: 0.08 }, side: { type: 'chrome', color: '$accentLight' } },
   // ---- candy ----
   candy: {
     font: 'titan', depth: 0.34, bevel: 0.08, bevelSegments: 4,
@@ -115,6 +119,33 @@ export const THEMES = {
       { type: 'bokeh', count: 160, size: [0.15, 0.5], colors: ['$p0', '$p1', '$p2'], intensity: 0.45, drift: 0.7, twinkle: 0.2 },
     ],
     fx: { bloom: 0.85, bloomThreshold: 1.0, chromatic: 0.25, vignette: 0.55, grain: 0.12, saturation: 1.05, contrast: 1.12, anamorphic: 0.3, rays: 0.3, flare: 0.55, exposure: 1.0, tonemap: 'aces' },
+  },
+  amv: {
+    palette: ['#ff3fb4', '#3fd2ff', '#b57bff', '#ffd166'],
+    sectionLen: 2,
+    case: 'lower',
+    shadow: '#000000',
+    background: { kind: 'void', base: '#020205', stars: 0.7 },
+    env: { kind: 'studio-neon' },
+    styles: { amvBold: 4, amvGlow: 2, amvChrome: 1.5, whiteHot: 0.6 },
+    anims: {
+      in: { zoom: 2, slide: 1.5, trackIn: 1.5, scatter: 1.2, pop: 1, rise: 1 },
+      out: { flyForward: 1.5, fade: 1, scatter: 1 },
+      idle: { float: 2, pulse: 1 },
+    },
+    camera: {
+      moves: { push: 2, orbitL: 1.5, orbitR: 1.5, dutch: 1.5, slideL: 1, slideR: 1, rollIn: 0.8, hero: 1, spiral: 0.6 },
+      transitions: { whip: 3, zoom: 1.5, spin: 0.6, smooth: 0.5 },
+      shake: 0.55, k: 0.95, tilt: 0.8, fill: 0.75, fovRange: [-4, 10],
+    },
+    layouts: { single: 2.5, line: 2, stack: 1.5, cascade: 1, ring: 0.5 },
+    decor: { spectrum: 1.2, sparks: 1.2, chromeStars: 0.8, glow: 1, streakSwirl: 0.8, sparkleBurst: 1, glassShards: 0.5 },
+    decorPerShot: [1, 2],
+    particles: [
+      { type: 'dust', count: 5000, size: [0.015, 0.05], colors: ['#ffffff'], intensity: 1.3, drift: 0.4, twinkle: 0.6 },
+      { type: 'bokeh', count: 140, size: [0.15, 0.5], colors: ['#ffffff', '$p0', '$p1'], intensity: 0.5, drift: 0.7, twinkle: 0.2 },
+    ],
+    fx: { bloom: 0.8, bloomThreshold: 1.0, chromatic: 0.3, vignette: 0.5, grain: 0.12, saturation: 1.05, contrast: 1.08, anamorphic: 0.45, exposure: 1.0, tonemap: 'aces' },
   },
   chrome: {
     palette: ['#ffffff', '#9fd8ff', '#ff4f6d', '#c084ff', '#ffd27a'],

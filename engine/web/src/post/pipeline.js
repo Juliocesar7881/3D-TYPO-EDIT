@@ -247,7 +247,8 @@ export class PostPipeline {
     r.autoClear = false;
     r.setClearColor(0x000000, 1);
     r.clear(true, true, true);
-    if (bg) r.render(bg.scene, bg.camera);
+    const layers = Array.isArray(bg) ? bg : [bg];
+    for (const l of layers) if (l) r.render(l.scene, l.camera);
     r.render(scene, camera);
     r.autoClear = true;
   }

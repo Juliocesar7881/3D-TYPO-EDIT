@@ -31,7 +31,8 @@ SwiftShader (CPU): ~0,5 s/frame em 1080p, ~0,27 s/frame no preview.
    - áudio (arquivo na pasta do projeto) e o **trecho** da música (`audio.offset` = segundo da música onde a edit começa; `duration`);
    - a letra **com tempo** (LRC/SRT/"tempo palavra") ou só o texto (aí você cronometra — passo 3);
    - formato: `vertical` (TikTok/Reels/Shorts 1080×1920) ou `landscape` (YouTube 1920×1080);
-   - estilo: `neon` (padrão 3D typography), `candy`, `candyNight`, `chrome`, `ice`, `inferno`, `sunset` — ou misture via `themeOverrides`;
+   - estilo: `neon` (padrão 3D typography), `amv` (texto sobre clipes/fotos), `candy`, `candyNight`, `chrome`, `ice`, `inferno`, `sunset` — ou misture via `themeOverrides`;
+   - clipes/fotos para usar (AMV): coloque na pasta do projeto e use `media` (ver `reference/cena.md`);
    - palavras de destaque (viram "hero": maiores, outra cor) e assinatura final (ex.: `EDITED BY @nome`).
 2. **Criar o projeto**: `projects/<nome>/scene.json` (copie `projects/_template/scene.json`) e coloque o áudio na pasta.
    Áudio e saídas não vão pro git (ver `.gitignore`). **Nunca** commite músicas/letras de terceiros no repositório.
@@ -91,7 +92,7 @@ SwiftShader (CPU): ~0,5 s/frame em 1080p, ~0,27 s/frame no preview.
 
 ```jsonc
 {
-  "theme": "neon",                 // neon | candy | candyNight | chrome | ice | inferno | sunset
+  "theme": "neon",                 // neon | amv | candy | candyNight | chrome | ice | inferno | sunset
   "format": "vertical",            // vertical | landscape | square | 4k
   "output": { "fps": 60 },
   "audio": { "file": "musica.mp3", "offset": 42.0 },

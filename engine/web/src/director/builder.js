@@ -7,6 +7,8 @@ import { Streak } from '../world/streaks.js';
 import { Prop, RingTunnel } from '../world/props.js';
 import { ShotRig, CameraDirector } from '../camera/rig.js';
 import { GlassShards, Lightning, Sparks, LightBeams, BackGlow } from '../world/fx3d.js';
+import { MediaCard } from '../world/media.js';
+import { Spectrum } from '../world/spectrum.js';
 import { clamp } from '../core/easing.js';
 
 const CANDY_KINDS = { hearts: 'heart', stars: 'star', gumballs: 'gumball', clouds: 'cloud', lollipops: 'lollipop', donuts: 'donut', pills: 'pill', cubes: 'cube' };
@@ -60,6 +62,10 @@ function buildDecor(d, shot, anchor, ctx, theme, nextShot, worldRoot, updatables
     }
     case 'beams': {
       add(new LightBeams({ S, count: r.int(3, 5), color: d.accent, t0, t1, seed: d.seed }));
+      break;
+    }
+    case 'spectrum': {
+      add(new Spectrum({ S, blockW: d.blockW, blockH: d.blockH, color: d.accent, color2: d.accent2, t0, t1, seed: d.seed, ring: r.chance(0.35) }, ctx));
       break;
     }
     case 'glow': {
@@ -163,7 +169,7 @@ function buildDecor(d, shot, anchor, ctx, theme, nextShot, worldRoot, updatables
   }
 }
 
-export function buildWorld(plan, theme, fonts, ctx, env) {
+export function buildWorld(plan, theme, fonts, ctx, env, media = null) {
   const scene = new THREE.Scene();
   scene.environment = env;
   const camera = new THREE.PerspectiveCamera(40, ctx.aspect, 0.05, 3000);
@@ -244,5 +250,16 @@ export function buildWorld(plan, theme, fonts, ctx, env) {
     updatables.push(p);
   });
 
+  // cards de foto/vídeo: presos à âncora do shot ativo em t0, alternando lados
+  if (media) {
+    media.cards().forEach((item, k) => {
+      let si = 0;
+      plan.shots.forEach((s, i) => { if (item.t0 >= s.start - 0.3) si = i; });
+      const s = plan.shots[si];
+      const card = new MediaCard(item, { S: s.block.S, blockW: s.block.w, blockH: s.block.h, accent: s.accent, slot: k });
+      anchors[si].add(card.object);
+      updatables.push(card);
+    });
+  }
   return { scene, camera, camDir, updatables, anchors };
 }

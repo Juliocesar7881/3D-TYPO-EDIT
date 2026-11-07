@@ -32,6 +32,9 @@ export const FONT_FILES = {
   cinzellight: 'CinzelDecorative-Regular.ttf',
   poiret: 'PoiretOne-Regular.ttf',
   michroma: 'Michroma-Regular.ttf',
+  poppins: 'Poppins-Black.ttf',
+  poppinsxb: 'Poppins-ExtraBold.ttf',
+  poppinssb: 'Poppins-SemiBold.ttf',
 };
 
 const fontCache = new Map();

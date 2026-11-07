@@ -15,7 +15,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { startServer } from './lib/server.mjs';
-import { rawEncoder, concatAndMux, contactSheet, probeDuration } from './lib/ffmpeg.mjs';
+import { rawEncoder, concatAndMux, contactSheet, probeDuration, probeSize, run } from './lib/ffmpeg.mjs';
 import { analyzeAudio } from './lib/audio.mjs';
 import { parseLyrics, snapWords } from './lib/lyrics.mjs';
 
@@ -106,6 +106,37 @@ async function prepareScene(scenePath, args) {
     scene.audio = null;
   }
   const offset = scene.audio?.offset || 0;
+  // fotos e clipes (estilo AMV): vídeo vira sequência de JPGs no fps da edit (com cache)
+  if (Array.isArray(scene.media)) {
+    for (const e of scene.media) {
+      const f = path.resolve(dir, e.file);
+      if (!fs.existsSync(f)) throw new Error('mídia não encontrada: ' + f);
+      const size = await probeSize(f);
+      if (size) { e.width = size.width; e.height = size.height; }
+      const isVideo = /\.(mp4|mov|webm|mkv|m4v|gif|avi)$/i.test(f);
+      const rel = path.relative(dir, f).split(path.sep).join('/');
+      if (!isVideo) {
+        if (rel.startsWith('..')) throw new Error('coloque a imagem dentro da pasta do projeto: ' + f);
+        e.image = '/project/' + rel;
+        continue;
+      }
+      const fpsM = scene.output.fps;
+      const speed = e.speed ?? 1;
+      const win = Math.max(0.1, (e.t1 ?? (e.t0 ?? 0) + 3) - (e.t0 ?? 0));
+      const width = (e.mode === 'backdrop' ? 1920 : 1280) * (args.preview || args.draft ? 0.5 : 1);
+      const st = fs.statSync(f);
+      const key = crypto.createHash('md5').update([f, st.size, st.mtimeMs, e.clipStart ?? 0, win, fpsM, speed, width].join('|')).digest('hex').slice(0, 12);
+      const outD = path.join(dir, '.cache', 'media', key);
+      if (!fs.existsSync(path.join(outD, 'done'))) {
+        fs.mkdirSync(outD, { recursive: true });
+        console.log(`🎞️  extraindo frames de ${path.basename(f)} (${win.toFixed(1)}s)...`);
+        await run(['-ss', String(e.clipStart ?? 0), '-t', String(win * speed), '-i', f, '-vf', `setpts=PTS/${speed},fps=${fpsM},scale=${Math.round(width)}:-2`, '-q:v', '3', path.join(outD, '%05d.jpg')]);
+        fs.writeFileSync(path.join(outD, 'done'), '1');
+      }
+      const count = fs.readdirSync(outD).filter((x) => x.endsWith('.jpg')).length;
+      e.frames = { url: `/project/.cache/media/${key}/`, count, fps: fpsM };
+    }
+  }
   // letra com tempo (arquivo ou texto)
   if (scene.lyrics) {
     const src = typeof scene.lyrics === 'string' && fs.existsSync(path.resolve(dir, scene.lyrics)) ? fs.readFileSync(path.resolve(dir, scene.lyrics), 'utf8') : String(scene.lyrics);

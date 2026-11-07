@@ -56,6 +56,14 @@ Para estudar os 21 vídeos da playlist em detalhe: baixe no PC (`referencias/bai
   brancos, chão xadrez; tudo **em volta** do texto, nunca cobrindo.
 - Pós: bloom baixo (fundo claro não pode virar névoa), tonemap neutro (preserva o pastel), quase sem grão.
 
+## 2b. Linguagem do "AMV Typography" (metade da playlist do usuário)
+
+- Texto branco, **minúsculo e gordo** (tema `amv`, estilos `amvBold`/`amvGlow`), voando em perspectiva com zoom/whip.
+- **Footage manda na cor**: clipes como fundo (`media` com `mode: "backdrop"`, `dim` 0.3–0.5) ou como **cards 3D**
+  atrás do texto (`mode: "card"`, `frame: "polaroid"` ou `"glow"`), trocando a cada 1–2 shots.
+- Barras de espectro sob o texto (`decor: ["spectrum"]`), faíscas e estrelas cromadas; anéis/plataformas com moderação.
+- Detalhes por vídeo: `referencias/playlist.md`.
+
 ## 3. Receitas (como pedir ao diretor)
 
 | momento | receita |
@@ -69,6 +77,7 @@ Para estudar os 21 vídeos da playlist em detalhe: baixe no PC (`referencias/bai
 | túnel | `decor: ["tunnel"]` no shot anterior ao corte, `transition: "whip"` |
 | clima calmo | `director.energy: 0.7`, `transition: "smooth"`, `in: "fade"`/`"rise"`, `idle: "float"` |
 | candy fofo | tema `candy`, `in: "bounce"`/`"drop"`, `idle: "jelly"`, `decor: ["hearts","clouds"]` |
+| AMV com clipes | tema `amv`, `media` com 1 backdrop por verso e cards nas palavras fortes, `decor: ["spectrum"]` no refrão |
 | fim | assinatura como palavras finais (`style: "outline"`/`"neonTube"`), `out: "fade"`, `fadeOut: 0.8` |
 
 ## 4. Ritmo e timing

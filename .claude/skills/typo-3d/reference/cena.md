@@ -28,7 +28,27 @@ Tempos em **segundos da edit** (t = 0 é o primeiro frame), exceto onde indicado
 | `intro` | — | card 2D de abertura (estilo referências): `{ "title": "NOME", "subtitle": "artista", "until": 2.0, "label": "presents", "bg": "dark", "font": "serif" }` |
 | `outro` | — | card de encerramento, mesmos campos + `from` (padrão: últimos 2 s) |
 | `cards` | lista | cards 2D em qualquer tempo: `{ from, to, title, subtitle, label, bg: dark/light/transparent, font: serif/cond/bold/round, size, tracking, frame, waveform, typewriter, color }` |
+| `media` | lista | fotos e clipes (estilo AMV), ver "Mídia" abaixo |
 | `start` | `0` | desloca o t do primeiro frame (raro) |
+
+## Mídia (`media[]`) — fotos e clipes
+
+Arquivos dentro da pasta do projeto. Vídeo vira sequência de frames (ffmpeg, com cache em `.cache/media/`).
+```jsonc
+"media": [
+  { "file": "clipe.mp4", "mode": "backdrop", "t0": 0, "t1": 4.2, "clipStart": 12.5, "dim": 0.4 },
+  { "file": "foto.jpg",  "mode": "card", "t0": 4.5, "t1": 7, "frame": "polaroid" },
+  { "file": "clipe.mp4", "mode": "card", "t0": 7.2, "t1": 9, "frame": "glow", "clipStart": 30 }
+]
+```
+| campo | descrição |
+|---|---|
+| `mode` | `backdrop` = fundo de tela inteira (cover) atrás do 3D; `card` = moldura 3D atrás do texto do shot ativo em `t0` |
+| `t0`, `t1` | tempo da edit em que aparece/some (fade/pop automáticos) |
+| `clipStart`, `speed` | de onde o clipe começa (s) e velocidade (0.5 = câmera lenta) |
+| `dim`, `saturation`, `tint`, `tintAmount`, `zoom`, `kenBurns`, `beatZoom`, `opacity` | backdrop: escurecer, saturação, tinta de cor, zoom lento e pulso no beat |
+| `frame` | card: `polaroid`, `glow` (borda neon, `frameColor`) ou `none` |
+| `size`, `side`, `pos`, `rot`, `brightness` | card: tamanho (×altura do bloco), lado (`behind` padrão, `left`, `right`), posição/rotação manual |
 
 ## Palavras (`words[]`)
 
@@ -102,9 +122,13 @@ Override por índice (veja os índices com `--plan`):
 
 **Estilos de texto** (cores `$accent` etc. vêm do shot):
 - escuros / 3D typography: `chrome`, `chromeTint`, `chromeBold`, `neon` (tubo de contorno), `neonTube`, `neonFill` (letra sólida brilhando), `neonDuo` (miolo branco + contorno neon), `glowWhite`, `gradient`, `glossy`, `holo` (iridescente), `outline`, `serif`, `card` (serifada plana p/ intro), `tech`
+- premium (refeitos a partir das referências): `chromePro`, `hologram` (holográfico que muda com o ângulo), `whiteHot` (branco com laterais coloridas brilhando), `neonTube2` (neon de tubo duplo), `chromeGrunge`, `textured` (sujo + contorno branco), `elegant`, `elegantOutline` (fino serifado)
+- AMV: `amvBold`, `amvGlow`, `amvChrome` (Poppins, ficam ótimos em minúsculas)
 - candy: `candy`, `candyRainbow` (cada letra de uma cor), `candyWhite`, `bubble`, `gummy`, `candyNeon`
 
-**Fontes** (todas OFL/Apache, em `fonts/`): `anton`, `bebas`, `archivo`, `sixcaps` (condensadas/pesadas) · `titan`, `lilita`, `luckiest`, `chewy`, `bowlby`, `bungee`, `rubikmono` (candy/display) · `righteous`, `audiowide`, `russo`, `blackops`, `monoton` (neon/tech) · `abril`, `dmserif` (serifadas) · `pacifico` (script).
+Qualquer estilo aceita `grunge: 0..1` no material (`face`/`side`) para textura suja/arranhada.
+
+**Fontes** (todas OFL/Apache, em `fonts/`): `anton`, `bebas`, `archivo`, `sixcaps` (condensadas/pesadas) · `titan`, `lilita`, `luckiest`, `chewy`, `bowlby`, `bungee`, `rubikmono` (candy/display) · `righteous`, `audiowide`, `russo`, `blackops`, `monoton` (neon/tech) · `abril`, `dmserif`, `cinzel`, `cinzellight`, `marcellus`, `italiana` (serifadas/elegantes) · `julius`, `poiret`, `michroma` (finas, legendas) · `poppins`, `poppinsxb`, `poppinssb` (AMV) · `pacifico` (script).
 
 **Animações de entrada** (`in`): `pop`, `popRot`, `drop`, `rise`, `slide`, `flip`, `spin`, `scatter` (letras voam de longe e montam a palavra), `zoom`, `typewriter`, `glitch`, `stretch`, `bounce`, `fade`, `unfold`, `swing`, `neonFlicker`, `trackIn`, `none`.
 **Saída** (`out`): `fade`, `scatter`, `explode`, `shrink`, `flyBack`, `flyForward`, `drop`, `collapse`, `glitch`, `none`.
@@ -114,7 +138,7 @@ Override por índice (veja os índices com `--plan`):
 
 **Transições** (`transition`): `whip` (acelera e freia, com arco e roll), `smooth`, `spin` (barrel roll 360°), `zoom` (punch de FOV), `cut` (+ `flash`/`glitch`).
 
-**Decor** (`decor`): `streakSwirl`, `streakCross`, `streakOrbit` (rastros de luz) · `neonRing`, `glassRing`, `halo`, `tunnel` (anéis no voo até o próximo shot) · `shards` (cristais) · `sparkleBurst` · `lasers` · `grid`, `checker` (chão) · candy: `hearts`, `stars`, `gumballs`, `clouds`, `lollipops`, `donuts`, `pills`, `cubes`.
+**Decor** (`decor`): premium: `glassShards` (cacos de vidro), `lightning` (raios elétricos), `sparks` (faíscas nos hits), `beams` (feixes de luz), `glow` (contraluz atrás do texto), `chromeStars`, `spectrum` (barras de espectro do áudio) · rastros: `streakSwirl`, `streakCross`, `streakOrbit` · `sparkleBurst` · anéis/chão (usar com moderação): `neonRing`, `glassRing`, `halo`, `tunnel`, `lasers`, `grid`, `checker` · candy: `hearts`, `stars`, `gumballs`, `clouds`, `lollipops`, `donuts`, `pills`, `cubes`.
 
 **Easing**: `linear`, `in|out|inOut` + `Sine|Quad|Cubic|Quart|Quint|Expo|Circ|Back|Elastic|Bounce` (ex. `outExpo`), `spring`, `whip`, `smoothstep`, `smootherstep`, ou cubic-bezier `[x1,y1,x2,y2]` (igual AE/CSS).
 
@@ -144,11 +168,14 @@ Override por índice (veja os índices com `--plan`):
 
 | tema | visual |
 |---|---|
-| `neon` | nebula colorida escura, cromado/neon/glow/holo, rastros, anéis, cristais (estilo 3D Typography Edit) |
+| `neon` | fumaça volumétrica escura em contraluz, cromado/holográfico/neon de tubo, cacos de vidro, raios elétricos, faíscas, cor por seção (estilo 3D Typography Edit) |
 | `chrome` | preto, cromado branco, bokeh quente, streak anamórfico forte, lockups empilhados |
 | `candy` | fundo rosa pastel com bolinhas, letras 3D glossy saturadas + contorno branco + sombra, corações/balas/nuvens/confete |
 | `candyNight` | candy em fundo escuro "dream" com neon, corações brilhando |
+| `amv` | AMV typography: preto com bokeh, texto branco minúsculo gordo (Poppins), espectro, faíscas; combine com `media` |
 | `ice` / `inferno` / `sunset` | variações de paleta (gelo, fogo, synthwave com chão grid) |
+
+**Céu volumétrico** (`themeOverrides.background`): `kind: "smoke" | "clouds" | "space"` + `light` (cor da luz de contraluz), `lightIntensity`, `ambient`, `dark`, `colors`, `coverage` (menor = mais nuvem), `exposure`, `tint` (quanto a cor da seção tinge o céu), `drift`. Com céu, `fx.rays` (raios de luz) e `fx.flare` (flare de lente) ficam ativos.
 
 ## Exemplo completo comentado
 

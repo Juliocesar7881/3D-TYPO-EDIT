@@ -73,7 +73,7 @@ export function planEdit(scene, theme, fonts, audio) {
   const aspect = (out.width || 1920) / (out.height || 1080);
   const portrait = aspect < 1;
   const energy = D.energy ?? 1;
-  const caseMode = D.case ?? 'upper';
+  const caseMode = D.case ?? theme.case ?? 'upper';
   const duration = scene.duration;
   const palette = theme.palette;
 

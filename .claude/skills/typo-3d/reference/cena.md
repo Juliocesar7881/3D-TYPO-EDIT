@@ -92,6 +92,9 @@ Arquivos dentro da pasta do projeto. Vídeo vira sequência de frames (ffmpeg, c
 | `tilt` | `1` | quanto o texto fica inclinado/rotacionado no espaço |
 | `spacing` | `1` | distância entre shots (menor = transições mais curtas, menos vazio no voo) |
 | `shake` | do tema | intensidade do shake de câmera (impulsos nos beats/hits) |
+| `transitionDur` | — | limite (s) da duração do voo entre shots. **Letra rápida** (~3 palavras/s): `0.32` |
+| `transitionLead` | `0.62` | fração do voo que acontece ANTES do próximo shot. Letra rápida: `0.3` (a câmera fica na frase até quase a próxima) |
+| `exitLead` | `0.18` | quanto antes do próximo shot as palavras começam a sair. Letra rápida: `0.06` |
 
 ## Shots (`shots[]`)
 

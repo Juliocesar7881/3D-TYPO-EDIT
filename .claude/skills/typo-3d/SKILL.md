@@ -23,7 +23,8 @@ npx playwright install chromium  # só fora do container da nuvem (aqui já exis
 ffmpeg -version                  # precisa estar no PATH (ou FFMPEG_PATH=...)
 ```
 No PC com GPU o render é rápido (`--gl gpu`, padrão no Windows/mac). **No Windows rode o render pelo
-PowerShell**: pelo Git Bash o Chromium com GPU não abre (`spawn UNKNOWN`) e cai para SwiftShader (lento). Na nuvem/Linux sem tela usa
+PowerShell**. Se o Chromium do Playwright não abrir (`spawn UNKNOWN` / "configuração lado a lado incorreta"),
+o render usa sozinho o Chrome ou Edge instalado, com GPU (~68 fps no preview, ~22 fps no final 1080p60). Na nuvem/Linux sem tela usa
 SwiftShader (CPU): ~0,5 s/frame em 1080p, ~0,27 s/frame no preview.
 
 ## 1. Fluxo de trabalho (siga nesta ordem)
@@ -54,6 +55,12 @@ SwiftShader (CPU): ~0,5 s/frame em 1080p, ~0,27 s/frame no preview.
    **Abra o sheet com Read e critique**: legibilidade, enquadramento (nada cortado sem querer), contraste,
    excesso de elementos, cor repetida em shots seguidos, brilho estourado. Corrija e repita. Use
    `--stills 1.2,3.4` para tempos específicos (ex.: meio das transições).
+   **Confira também cada shot logo depois da ÚLTIMA palavra dele entrar** (`t da última palavra + 0.2`):
+   se o quadro estiver vazio ou no meio do voo, a última palavra quase não aparece. Em letra rápida use
+   `"director": { "transitionDur": 0.32, "transitionLead": 0.3, "exitLead": 0.06 }`.
+   Layouts `line`/`cascade` cortam nas bordas quando a câmera persegue a última palavra: troque para
+   `stack` ou aumente `zoom` (1.15–1.35) no shot. Cromado escuro sobre fumaça some: use `whiteHot`.
+   No PowerShell em pt-BR os números saem com vírgula: monte a lista de `--stills` com ponto.
 6. **Preview**: `--preview` (meia resolução, 30 fps). Para checar fluidez extraia uma tira das transições:
    `ffmpeg -ss <t> -t 1.2 -i out/<nome>-preview.mp4 -vf "select='not(mod(n\,2))',scale=320:-2,tile=6x3" -frames:v 1 out/strip.png`
    e olhe com Read. Frames vazios no voo da câmera → diminua `director.spacing` ou a transição.

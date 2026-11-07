@@ -315,6 +315,8 @@ export function planEdit(scene, theme, fonts, audio) {
       const gapBefore = start - (prevShot.words[prevShot.words.length - 1].end ?? start);
       let dur = clamp((0.62 - 0.18 * energy) * r.range(0.85, 1.2), 0.2, 0.85);
       if (gapBefore > 0.9 && !ov.transition) { style = r.chance(0.5) ? 'smooth' : style; dur = clamp(gapBefore * 0.8, 0.5, 1.1); }
+      // letra rápida: director.transitionDur limita a duração do voo (câmera fica mais tempo na frase)
+      if (D.transitionDur && !ov.transition) dur = Math.min(dur, D.transitionDur);
       dur = Math.min(dur, avail * 0.9);
       if (ov.transitionDur) dur = ov.transitionDur;
       trans = {
@@ -325,7 +327,7 @@ export function planEdit(scene, theme, fonts, audio) {
         spinDir: r.sign(),
         spins: 1,
         whipRoll: r.range(6, 16),
-        lead: 0.62,
+        lead: ov.transitionLead ?? D.transitionLead ?? 0.62, // fração do voo que acontece ANTES do próximo shot
         flash: ov.flash ?? (style === 'cut' || (gapBefore > 0.7 && r.chance(0.35 * energy))),
         glitch: ov.glitch ?? r.chance(0.12 * energy),
       };
@@ -351,7 +353,7 @@ export function planEdit(scene, theme, fonts, audio) {
     };
 
     // palavras: tempos de entrada/saída
-    const outT = Math.max(start + 0.2, nextStart - (groups[si + 1] ? 0.18 : 0.45));
+    const outT = Math.max(start + 0.2, nextStart - (groups[si + 1] ? (D.exitLead ?? 0.18) : 0.45));
     const finalWords = wordPlans.map((p, wi) => {
       const w = p.w;
       return {

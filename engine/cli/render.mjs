@@ -168,6 +168,21 @@ function glMode(args) {
   return 'gpu';
 }
 
+function systemBrowsers() {
+  const env = process.env;
+  const c = process.platform === 'win32'
+    ? [
+        path.join(env.ProgramFiles || 'C:\\Program Files', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+        path.join(env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+        path.join(env.LOCALAPPDATA || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+        path.join(env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+      ]
+    : process.platform === 'darwin'
+      ? ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge']
+      : ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'];
+  return c.filter((p) => p && fs.existsSync(p));
+}
+
 async function launch(args) {
   const { chromium } = require('playwright');
   const mode = glMode(args);
@@ -181,6 +196,15 @@ async function launch(args) {
     return await chromium.launch(opts);
   } catch (e) {
     if (mode !== 'swiftshader') {
+      // Chromium do Playwright quebrado (ex.: Windows "configuração lado a lado incorreta"):
+      // tenta o Chrome/Edge instalado no sistema antes de cair para a CPU
+      for (const exe of systemBrowsers()) {
+        try {
+          const b = await chromium.launch({ ...opts, channel: undefined, executablePath: exe });
+          console.warn(`ℹ️  Chromium do Playwright não abriu; usando ${path.basename(exe)} do sistema com GPU`);
+          return b;
+        } catch {}
+      }
       console.warn('⚠️  não deu pra abrir o Chromium com GPU, usando SwiftShader (CPU):', e.message.split('\n')[0]);
       return chromium.launch({ args: [...common, '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
     }

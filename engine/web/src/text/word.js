@@ -7,6 +7,8 @@ import { resolveIn, resolveOut, resolveIdle, identity, combine } from './anims.j
 import { clamp } from '../core/easing.js';
 import { hashString, mulberry32 } from '../core/rng.js';
 
+const ECHO_SHRINK = 0.8;
+
 function orderIndex(order, i, n, seed) {
   switch (order) {
     case 'reverse': return n - 1 - i;
@@ -43,6 +45,14 @@ export class Word3D {
     const st = this.p.style || {};
     const tracking = this.p.tracking ?? st.tracking ?? 0.04;
     const chars = [...this.text];
+    // eco da última letra ("WAYYYY", frooky/iluxhaep): cópias menores e mais apagadas
+    const nEcho = this.p.echo === true ? 4 : Math.max(0, Math.min(8, Math.round(this.p.echo || 0)));
+    const echoScale = [];
+    const baseLen = chars.length;
+    if (nEcho && chars.length) {
+      const last = chars[chars.length - 1];
+      for (let k = 1; k <= nEcho; k++) { chars.push(last); echoScale.push(Math.pow(ECHO_SHRINK, k)); }
+    }
     const q = this.ctx.quality || {};
     const geoOpts = {
       depth: st.depth ?? 0.22,
@@ -56,10 +66,14 @@ export class Word3D {
     // layout horizontal com kerning
     let x = 0;
     const placed = [];
+    const scaleOf = (i) => (i >= baseLen ? echoScale[i - baseLen] : 1);
     chars.forEach((ch, i) => {
+      const es = scaleOf(i);
       const adv = font.advance(ch);
-      placed.push({ ch, x });
-      x += adv + (i < chars.length - 1 ? font.kerning(ch, chars[i + 1]) + tracking : 0);
+      placed.push({ ch, x, es });
+      if (i === chars.length - 1) x += es < 1 ? (adv * (1 + es)) / 2 : adv;
+      else if (i + 1 >= baseLen) x += (adv * es + font.advance(chars[i + 1]) * scaleOf(i + 1)) / 2 + tracking * es; // eco: letras encolhendo, sem sobrepor
+      else x += adv + font.kerning(ch, chars[i + 1]) + tracking;
     });
     const width = x;
     this.width = width * this.size;
@@ -67,7 +81,9 @@ export class Word3D {
     const letterColors = st.letterColors;
     let li = 0;
     const nVisible = chars.filter((c) => c.trim()).length;
-    placed.forEach(({ ch, x: lx }, idx) => {
+    const splitAt = this.p.splitAt;
+    const splitColor = this.p.splitColor;
+    placed.forEach(({ ch, x: lx, es }, idx) => {
       if (!ch.trim()) return;
       const g = glyphGeometry(font, ch, geoOpts);
       if (g.empty || !g.face) return;
@@ -77,8 +93,16 @@ export class Word3D {
       pivot.position.set(bx, by, 0);
       const mats = [];
       // face + laterais
-      const faceSpec = { ...(st.face || { type: 'chrome' }) };
+      let faceSpec = { ...(st.face || { type: 'chrome' }) };
       if (letterColors && letterColors.length) faceSpec.color = letterColors[li % letterColors.length];
+      const isSplit = splitColor && splitAt != null && li >= splitAt;
+      if (isSplit) {
+        // parte colorida da palavra: neon/flat só troca a cor; materiais iluminados viram glossy colorido
+        // brilho menor para a cor não estourar em branco no bloom
+        if (['glow', 'neon', 'gradient-glow'].includes(faceSpec.type)) faceSpec = { type: 'glow', color: splitColor, intensity: Math.min(faceSpec.intensity ?? 2.6, 1.25) };
+        else if (faceSpec.type === 'flat') faceSpec.color = splitColor;
+        else faceSpec = { type: 'glossy', color: splitColor, roughness: 0.22, env: 1.15, grunge: faceSpec.grunge };
+      }
       if (faceSpec.type === 'gradient' || faceSpec.type === 'gradient-glow') {
         faceSpec.range = [g.bbox.y1 - g.center[1], g.bbox.y2 - g.center[1]];
       }
@@ -87,6 +111,7 @@ export class Word3D {
       if (sideSpec && letterColors && letterColors.length && sideSpec.followLetter) {
         sideSpec.color = shade(letterColors[li % letterColors.length], sideSpec.followLetter);
       }
+      if (isSplit) sideSpec = { type: 'metal', color: shade(splitColor, -0.45), roughness: 0.3 };
       const sideMat = sideSpec ? createMaterial(sideSpec, this.ctx) : faceMat;
       mats.push(faceMat);
       if (sideMat !== faceMat) mats.push(sideMat);
@@ -138,7 +163,7 @@ export class Word3D {
         mats.push(shMat);
       }
       this.group.add(pivot);
-      this.letters.push({ ch, pivot, base: pivot.position.clone(), baseRot: [0, 0, 0], baseScale: 1, mats, i: li, idx, seed: (this.seed + li * 2654435761) >>> 0, gx: lx + g.center[0] - width / 2 });
+      this.letters.push({ ch, pivot, base: pivot.position.clone(), baseRot: [0, 0, 0], baseScale: es ?? 1, fade: es < 1 ? Math.pow(es, 1.6) : 1, mats, i: li, idx, seed: (this.seed + li * 2654435761) >>> 0, gx: lx + g.center[0] - width / 2 });
       li++;
     });
     this.n = nVisible;
@@ -253,7 +278,7 @@ export class Word3D {
       const bs = L.baseScale;
       L.pivot.scale.set(T.sx * bs, T.sy * bs, T.sz * bs);
       const flash = clamp(T.flash * (this.ctx.letterFlash ?? 1) + (frameCtx.wordFlash || 0));
-      for (const m of L.mats) setMaterialState(m, op, flash);
+      for (const m of L.mats) setMaterialState(m, op * (L.fade ?? 1), flash);
     }
   }
 

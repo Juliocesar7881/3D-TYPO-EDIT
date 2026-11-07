@@ -1,9 +1,24 @@
 # Guia de estilo: o que faz um edit de tipografia 3D ficar absurdo
 
-Baseado na análise frame a frame (storyboards ~1 fps) de edits de referência do mesmo nicho da playlist
-"typo 3d" do usuário: 3D Typography Edits (frooky, iluxhaep, lvcʌ…) e "AMV Typography Candy" (Xtuez e similares).
-Para estudar os 21 vídeos da playlist em detalhe: baixe no PC (`referencias/baixar_referencias.ps1`) e rode
-`node engine/cli/ref-frames.mjs` — depois abra os `referencias/frames/*/sheet_XX.jpg`.
+Baseado na análise frame a frame dos **21 vídeos completos** da playlist "typo 3d" do usuário (estudados em
+07/11/2026: frooky, iluxhaep, Flee e oito AMV typography) + storyboards de edits do mesmo nicho.
+Detalhe por vídeo, ritmo medido e assinaturas de cada editor: `referencias/playlist.md`.
+Para refazer o estudo: `referencias/baixar_referencias.ps1` e `node engine/cli/ref-frames.mjs`
+(mosaicos em `referencias/frames/`, fora do git).
+
+## 0. As 8 assinaturas que mais aparecem nos 21 vídeos
+
+1. **Respiro no preto**: 1–3 s quase pretos na abertura e no fim; entre frases o fundo volta ao escuro e só o
+   texto brilha. Não encha todo shot de fumaça/cor — reserve cor forte e fumaça para o refrão.
+2. **Intro em card** (iluxhaep): moldura fina com cantos, serifada pequena em caixa-alta, waveform, e o fundo
+   **alternando preto ↔ branco a cada frase** (vários `cards` seguidos, `bg` dark/light).
+3. **Lockup justificado com 1 palavra colorida** (`layout: "stack"`, hero com `color` vermelho/rosa).
+4. **Cor dividida dentro da palavra**: `"OLD|ER"`, `"BIG|GER"`, `"D|IE"` — parte branca, parte colorida.
+5. **Eco de letra** em sílaba esticada: `"echo": 5` ("WAYYYY", "IEEEE", "NOOOO").
+6. **Texto em fita/anel** girando (`layout: "ring"`) e anéis/pílulas grossas atrás da frase.
+7. **Assinatura no meio** ("BY FROOKY", "BY ILUXHA" como palavra de um shot, ~60% da edit) e no fim.
+8. **Logo/avatar redondo brilhando** no preto para fechar (`media` com `frame: "circle"`) + "edited by" fino
+   espaçado (`outro` ou `cards` com `font: "cond"`, `tracking` alto).
 
 ## 1. Linguagem comum dos 3D Typography Edits
 
@@ -79,6 +94,10 @@ Para estudar os 21 vídeos da playlist em detalhe: baixe no PC (`referencias/bai
 | candy fofo | tema `candy`, `in: "bounce"`/`"drop"`, `idle: "jelly"`, `decor: ["hearts","clouds"]` |
 | AMV com clipes | tema `amv`, `media` com 1 backdrop por verso e cards nas palavras fortes, `decor: ["spectrum"]` no refrão |
 | fim | assinatura como palavras finais (`style: "outline"`/`"neonTube"`), `out: "fade"`, `fadeOut: 0.8` |
+| intro iluxhaep | 3–5 `cards` de ~0,7 s, um por frase, `bg` alternando `"dark"`/`"light"`, `font: "serif"`, `frame: true`, `waveform: true`, `size: 0.035` |
+| palavra meio colorida | `{ "text": "OLD\|ER", "accent": true }` (ou `splitColor`) em lockup `stack` |
+| sílaba esticada | `{ "text": "WAY", "echo": 5 }` + `in: "trackIn"` ou `"stretch"` |
+| fecho com avatar | última palavra/assinatura solo + `media: [{ "file": "avatar.png", "mode": "card", "frame": "circle", "t0": …, "t1": …, "size": 1.2 }]` |
 
 ## 4. Ritmo e timing
 

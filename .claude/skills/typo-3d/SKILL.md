@@ -22,7 +22,8 @@ npm install                      # three, opentype.js, playwright
 npx playwright install chromium  # só fora do container da nuvem (aqui já existe)
 ffmpeg -version                  # precisa estar no PATH (ou FFMPEG_PATH=...)
 ```
-No PC com GPU o render é rápido (`--gl gpu`, padrão no Windows/mac). Na nuvem/Linux sem tela usa
+No PC com GPU o render é rápido (`--gl gpu`, padrão no Windows/mac). **No Windows rode o render pelo
+PowerShell**: pelo Git Bash o Chromium com GPU não abre (`spawn UNKNOWN`) e cai para SwiftShader (lento). Na nuvem/Linux sem tela usa
 SwiftShader (CPU): ~0,5 s/frame em 1080p, ~0,27 s/frame no preview.
 
 ## 1. Fluxo de trabalho (siga nesta ordem)
@@ -72,6 +73,9 @@ SwiftShader (CPU): ~0,5 s/frame em 1080p, ~0,27 s/frame no preview.
   câmera com dutch e zoom punch; formas (corações, estrelas, balas, nuvens) em volta, nunca na frente do texto.
 - **Neon/3D typography**: fundo escuro com nebula, cromado/neon/glow, perspectiva forte (orbit, hero low-angle, spiral),
   letras que montam a palavra (scatter/zoom/flip), rastros de luz e anéis, bloom forte mas sem estourar o texto.
+- **Assinaturas das referências** (estudo dos 21 vídeos, `reference/estilo.md` §0): respiro no preto; intro em
+  cards alternando preto/branco; palavra meio colorida `"OLD|ER"`; eco de letra `"echo": 5`; assinatura
+  "BY …" no meio; avatar redondo no fim (`media` com `frame: "circle"`). Use 2–3 por edit, não todas.
 
 ## 3. Comandos
 
@@ -121,4 +125,5 @@ SwiftShader (CPU): ~0,5 s/frame em 1080p, ~0,27 s/frame no preview.
 - **Tela preta / erro WebGL**: `--gl swiftshader`. Fontes: nomes em `reference/cena.md` ou `.ttf` na pasta do projeto.
 - **Palavra estourada de brilho**: troque estilo (ex.: `neonFill`→`chromeTint`) ou reduza `fx.bloom`.
 - **Texto pequeno/grande demais**: `shots[i].zoom` (multiplica a distância da câmera) ou `word.size`.
-- **YouTube bloqueia download na nuvem**: use `referencias/baixar_referencias.ps1` no PC do usuário.
+- **YouTube bloqueia download na nuvem**: use `referencias/baixar_referencias.ps1` no PC do usuário (sem argumento
+  baixa os ids de `referencias/playlist.md`). Os 21 já foram estudados; a análise está em `referencias/playlist.md`.

@@ -15,6 +15,19 @@ function isShort(text) {
   return t.length <= 2 || SHORT.has(t);
 }
 
+// primeira cor bem saturada da lista (para a parte colorida de "OLD|ER")
+function vividOf(list) {
+  for (const c of list) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(c || ''));
+    if (!m) continue;
+    const n = parseInt(m[1], 16);
+    const rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    const mx = Math.max(...rgb), mn = Math.min(...rgb);
+    if (mx > 60 && (mx - mn) / mx > 0.45) return '#' + m[1];
+  }
+  return '#ff3355';
+}
+
 function cleanText(text, mode) {
   let s = String(text).trim();
   if (mode === 'upper') s = s.toUpperCase();
@@ -79,7 +92,17 @@ export function planEdit(scene, theme, fonts, audio) {
 
   // ---------- 1) palavras ----------
   const words = (scene.words || [])
-    .map((w, i) => ({ ...w, i, text: cleanText(w.text, w.case || caseMode) }))
+    .map((w, i) => {
+      // "OLD|ER" = cor dividida (iluxhaep): letras depois do | ganham splitColor
+      let text = cleanText(w.text, w.case || caseMode);
+      let splitAt = w.splitAt;
+      const bar = text.indexOf('|');
+      if (bar >= 0) {
+        splitAt = [...text.slice(0, bar)].filter((c) => c.trim()).length;
+        text = text.replace(/\|/g, '');
+      }
+      return { ...w, i, text, splitAt };
+    })
     .filter((w) => w.text.length)
     .sort((a, b) => a.t - b.t);
   words.forEach((w, i) => {
@@ -184,7 +207,12 @@ export function planEdit(scene, theme, fonts, audio) {
       const style = resolveStyle(w.styleObj || wStyleName, theme, wcctx);
       const font = fonts[(w.font || style.font || 'anton').toLowerCase()] || fonts.anton;
       const tracking = w.tracking ?? style.tracking ?? 0.04;
-      const natW = font.measure(w.text, tracking);
+      let natW = font.measure(w.text, tracking);
+      const nEcho = w.echo === true ? 4 : Math.max(0, Math.min(8, Math.round(w.echo || 0)));
+      if (nEcho) {
+        const adv = font.advance([...w.text].pop() || 'A');
+        for (let k = 1; k <= nEcho; k++) natW += adv * Math.pow(0.8, k) + tracking;
+      }
       return { w, isHero, styleName: wStyleName, style, font, fontName: (w.font || style.font || 'anton').toLowerCase(), tracking, natW, size: w.size ?? 1 };
     });
 
@@ -339,6 +367,9 @@ export function planEdit(scene, theme, fonts, audio) {
         style: p.style,
         letterLayout: w.letterLayout || (wi === 0 ? letterLayout : 'line'),
         viewDist: baseDist,
+        splitAt: w.splitAt,
+        splitColor: w.splitAt != null ? (w.splitColor || w.color || vividOf([accent2, accent3, accent, ...theme.palette])) : undefined,
+        echo: w.echo,
         anim: {
           in: w.in || (p.isHero && r.chance(0.4) ? r.weighted(theme.anims.in) : inA),
           out: w.out || outA,

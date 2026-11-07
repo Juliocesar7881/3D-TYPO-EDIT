@@ -208,7 +208,8 @@ export function buildWorld(plan, theme, fonts, ctx, env, media = null) {
       const font = fonts[wp.font] || fonts.anton;
       const word = new Word3D({
         text: wp.text, font, size: wp.size, tracking: wp.tracking, style: wp.style, anim: wp.anim,
-        t0: wp.t0, tOut: wp.tOut, letterLayout: wp.letterLayout, viewDist: wp.viewDist, seed: (ctx.seed * 31 + si * 977 + wp.t0 * 1000) >>> 0,
+        t0: wp.t0, tOut: wp.tOut, letterLayout: wp.letterLayout, viewDist: wp.viewDist,
+        splitAt: wp.splitAt, splitColor: wp.splitColor, echo: wp.echo, seed: (ctx.seed * 31 + si * 977 + wp.t0 * 1000) >>> 0,
       }, ctx);
       const holder = new THREE.Group();
       holder.position.set(...wp.pos);

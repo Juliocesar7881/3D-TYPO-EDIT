@@ -121,10 +121,12 @@ export class MediaCard {
     const e = item.e;
     const S = opts.S;
     // tamanho relativo ao bloco de texto (fica atrás dele, como nas AMVs)
+    const frame = e.frame || 'polaroid';
+    const round = frame === 'circle';
     let h = (e.size ?? 1.5) * Math.max(opts.blockH, S * 0.35);
-    let w = h * item.aspect;
+    let w = round ? h : h * item.aspect;
     const maxW = S * 1.25;
-    if (w > maxW) { w = maxW; h = w / item.aspect; }
+    if (w > maxW) { w = maxW; h = round ? w : w / item.aspect; }
     this.h = h;
     this.group = new THREE.Group();
     this.object = this.group;
@@ -132,10 +134,44 @@ export class MediaCard {
     const photo = new THREE.MeshBasicMaterial({ map: item.tex, transparent: true, side: THREE.DoubleSide });
     photo.color.setScalar(e.brightness ?? 1.2); // compensa o tonemap ACES
     this.mats.push(photo);
-    const plane = new THREE.Mesh(new THREE.PlaneGeometry(w, h), photo);
+    let geo;
+    if (round) {
+      // recorte redondo "cover" (avatar/logo do editor, como no fim dos edits do iluxhaep)
+      geo = new THREE.CircleGeometry(h / 2, 96);
+      const uv = geo.attributes.uv, a = item.aspect;
+      for (let i = 0; i < uv.count; i++) {
+        let u = uv.getX(i), v = uv.getY(i);
+        if (a > 1) u = 0.5 + (u - 0.5) / a; else v = 0.5 + (v - 0.5) * a;
+        uv.setXY(i, u, v);
+      }
+    } else geo = new THREE.PlaneGeometry(w, h);
+    const plane = new THREE.Mesh(geo, photo);
     plane.renderOrder = 2;
     this.group.add(plane);
-    const frame = e.frame || 'polaroid';
+    if (round) {
+      const c = new THREE.Color(e.frameColor || '#9fd8ff');
+      const ringMat = new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(2.8), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+      const ring = new THREE.Mesh(new THREE.RingGeometry(h * 0.5, h * 0.525, 128), ringMat);
+      ring.position.z = 0.001 * S;
+      this.group.add(ring);
+      // halo suave atrás (gradiente radial em textura de canvas)
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = 256;
+      const g = cv.getContext('2d');
+      const grd = g.createRadialGradient(128, 128, 60, 128, 128, 128);
+      grd.addColorStop(0, 'rgba(255,255,255,0.9)');
+      grd.addColorStop(0.35, 'rgba(255,255,255,0.35)');
+      grd.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = grd;
+      g.fillRect(0, 0, 256, 256);
+      const haloTex = new THREE.CanvasTexture(cv);
+      const haloMat = new THREE.MeshBasicMaterial({ map: haloTex, color: c.clone().multiplyScalar(1.6), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+      const halo = new THREE.Mesh(new THREE.PlaneGeometry(h * 1.9, h * 1.9), haloMat);
+      halo.position.z = -0.003 * S;
+      halo.renderOrder = 1;
+      this.group.add(halo);
+      this.mats.push(ringMat, haloMat);
+    }
     if (frame === 'polaroid') {
       const m = h * 0.06;
       const bg = new THREE.MeshStandardMaterial({ color: '#f6f3ee', roughness: 0.55, metalness: 0, transparent: true, side: THREE.DoubleSide });
@@ -161,10 +197,11 @@ export class MediaCard {
     const sx = side === 'left' ? -1 : side === 'right' ? 1 : alt;
     let px, py, pz;
     if (side === 'left' || side === 'right') { px = sx * (opts.blockW * 0.5 + w * 0.5); py = 0; pz = -S * 0.12; }
+    else if (round) { px = 0; py = 0; pz = -S * 0.3; }
     else { px = sx * opts.blockW * 0.16; py = h * 0.06; pz = -S * 0.42; }
     if (e.pos) [px, py, pz] = e.pos;
     this.base = new THREE.Vector3(px, py, pz);
-    this.baseRot = new THREE.Euler(e.rot?.[0] ?? 0.04, e.rot?.[1] ?? -sx * 0.2, e.rot?.[2] ?? -sx * 0.05);
+    this.baseRot = new THREE.Euler(e.rot?.[0] ?? (round ? 0 : 0.04), e.rot?.[1] ?? (round ? 0 : -sx * 0.2), e.rot?.[2] ?? (round ? 0 : -sx * 0.05));
     this.group.position.copy(this.base);
     this.group.rotation.copy(this.baseRot);
   }

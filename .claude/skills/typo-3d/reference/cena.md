@@ -47,7 +47,7 @@ Arquivos dentro da pasta do projeto. Vídeo vira sequência de frames (ffmpeg, c
 | `t0`, `t1` | tempo da edit em que aparece/some (fade/pop automáticos) |
 | `clipStart`, `speed` | de onde o clipe começa (s) e velocidade (0.5 = câmera lenta) |
 | `dim`, `saturation`, `tint`, `tintAmount`, `zoom`, `kenBurns`, `beatZoom`, `opacity` | backdrop: escurecer, saturação, tinta de cor, zoom lento e pulso no beat |
-| `frame` | card: `polaroid`, `glow` (borda neon, `frameColor`) ou `none` |
+| `frame` | card: `polaroid`, `glow` (borda neon, `frameColor`), `circle` (recorte redondo com anel e halo na cor `frameColor` — avatar/logo do editor no fim, centralizado por padrão) ou `none` |
 | `size`, `side`, `pos`, `rot`, `brightness` | card: tamanho (×altura do bloco), lado (`behind` padrão, `left`, `right`), posição/rotação manual |
 
 ## Palavras (`words[]`)
@@ -74,6 +74,9 @@ Arquivos dentro da pasta do projeto. Vídeo vira sequência de frames (ffmpeg, c
 | `order` | ordem do stagger por letra: `forward`, `reverse`, `center`, `edges`, `random` |
 | `letterLayout` | `line`, `vertical`, `arc`, `ring`, `scatter3d`, `wave` |
 | `exit` | tempo em que a palavra começa a sair (padrão: quando a câmera sai do shot) |
+| `\|` no `text` | **cor dividida** (iluxhaep): `"OLD\|ER"` = "OLD" no estilo do shot e "ER" colorido. Equivale a `splitAt: 3` |
+| `splitAt`, `splitColor` | índice da letra onde a cor muda e a cor (padrão: `color` da palavra, senão a cor mais viva da paleta) |
+| `echo` | **eco da última letra** (frooky): `5` = "WAY" vira "WAYYYYY", cada cópia menor e mais apagada. `true` = 4 |
 | `pos`, `rot` | posição/rotação manual dentro do shot (unidades de cap-height / radianos) |
 
 ## Diretor (`director`)
